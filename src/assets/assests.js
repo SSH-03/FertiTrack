@@ -1,9 +1,9 @@
-import fertiTrack_icon from "./fertiTrack_icon.png";
+import FertiTrack_icon from "./FertiTrack_icon.png";
 import logout_icon from "./logout_icon.png";
 import profile_icon from "./profile_icon.png";
 
 export const assets = {
-    fertiTrack_icon,
+    FertiTrack_icon,
     logout_icon,
     profile_icon
 };
