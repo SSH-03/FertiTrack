@@ -10,7 +10,7 @@ const Navbar = () => {
                 <div class="container-fluid">
                     <a class="navbar-brand">
                         <img
-                            src={assets.fertiTrack_icon}
+                            src={assets.FertiTrack_icon}
                             alt="Bootstrap"
                             width="60"
                             height="60"
