@@ -1,11 +1,18 @@
-import React from 'react'
+import React, { useContext } from 'react'
+import { StoreContext } from '../context/StoreContext';
 
 const Orders = () => {
-  return (
-    <div>
-      Orders
-    </div>
-  )
+   const { orders } = useContext(StoreContext);
+
+   return (
+       <>
+           {orders.map((o) => (
+               <div key={o.id}>
+                   Order #{o.id} — {o.customer.name} — ₹{o.total}
+               </div>
+           ))}
+       </>
+   );
 }
 
 export default Orders
