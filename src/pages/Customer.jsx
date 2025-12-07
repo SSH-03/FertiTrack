@@ -1,15 +1,22 @@
 import React, { useContext, useState } from "react";
 import { StoreContext } from "../context/StoreContext";
+import { useNavigate } from "react-router-dom";
 
 const Customer = () => {
-    const { customers } = useContext(StoreContext);
+    const { customers , setSelectedCustomer} = useContext(StoreContext);
     const [search, setSearch] = useState("");
+    const navigate = useNavigate();
 
     const filtered = customers.filter(
         (c) =>
             c.name.toLowerCase().includes(search.toLowerCase()) ||
             c.phone.toString().includes(search)
     );
+     const handleSelect = (customer) => {
+         setSelectedCustomer(customer);
+         navigate("/billing"); // auto-switch tab
+     };
+
 
     return (
         <div className="container">
@@ -45,7 +52,7 @@ const Customer = () => {
                 <tbody>
                     {filtered.length > 0 ? (
                         filtered.map((item, index) => (
-                            <tr key={index} className="">
+                            <tr key={index} className="" onClick={()=>handleSelect(item)}>
                                 <td className="p-2 border">{item.name}</td>
                                 <td className="p-2 border">{item.phone}</td>
                                 <td className="p-2 border">{item.village}</td>

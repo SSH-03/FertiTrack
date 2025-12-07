@@ -6,8 +6,11 @@ import Billing from "./pages/Billing";
 import Orders from "./pages/Orders";
 import Products from "./pages/Products";
 import Contact from "./pages/Contact";
+import { useState } from "react";
 
 function App() {
+        const [activeTab, setActiveTab] = useState("customers");
+
     return (
         <div className="container-full">
             <Navbar />
