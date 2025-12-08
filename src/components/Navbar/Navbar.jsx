@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 const Navbar = () => {
     const [menu, setMenu] = useState("customers");
     return (
-        <div className="container=full">
+        <div className="container-fluid">
             <nav className="navbar navbar-expand-lg bg-body-tertiary">
                 <div className="container-fluid">
                     <a className="navbar-brand">
