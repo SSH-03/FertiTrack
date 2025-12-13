@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { assets } from "../../assets/assests";
 import { Link } from "react-router-dom";
 
-const Navbar = () => {
+const Navbar = ({ setShowLogin }) => {
     const [menu, setMenu] = useState("customers");
     return (
         <div className="container-fluid">
@@ -119,6 +119,20 @@ const Navbar = () => {
                                     width="30"
                                 />
                                 <p>Logout</p>
+                            </div>
+                            <div>
+                                {" "}
+                                <button
+                                    className="btn btn-success"
+                                    onClick={() => setShowLogin(true)}
+                                >
+                                    <img
+                                        className="ms-4"
+                                        src={assets.add_big_icon}
+                                        width="30"
+                                    />
+                                    Login
+                                </button>
                             </div>
                         </div>
                     </div>
