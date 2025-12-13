@@ -19,8 +19,22 @@ const StoreContextProvider = (props) => {
         }
     };
 
+    // const removeProduct = (itemId) => {
+    //     setBillingItems((prev) => ({ ...prev, [itemId]: prev[itemId] - 1 }));
+    // };
+
     const removeProduct = (itemId) => {
-        setBillingItems((prev) => ({ ...prev, [itemId]: prev[itemId] - 1 }));
+        setBillingItems((prev) => {
+            const updated = { ...prev };
+
+            if (updated[itemId] > 1) {
+                updated[itemId] = updated[itemId] - 1; // reduce qty
+            } else {
+                delete updated[itemId]; // remove item completely
+            }
+
+            return updated;
+        });
     };
 
     useEffect(() => {
