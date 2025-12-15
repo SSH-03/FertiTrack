@@ -12,7 +12,7 @@ const Navbar = ({ setShowLogin }) => {
                         <img
                             src={assets.FertiTrack_icon}
                             alt="Bootstrap"
-                            width="60"
+                            width="212"
                             height="60"
                         />
                     </a>
