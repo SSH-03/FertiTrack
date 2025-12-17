@@ -13,6 +13,9 @@ import { useState } from "react";
 import LoginPopUp from "./components/LoginPopUp";
 import ProductList from "./pages/ProductList";
 import ProductAdd from "./pages/ProductAdd";
+import Home from "./pages/Home";
+
+import { ToastContainer, toast } from "react-toastify";
 
 function App() {
     // const [activeTab, setActiveTab] = useState("customers");
@@ -20,11 +23,13 @@ function App() {
 
     return (
         <>
+        <ToastContainer/>
             {showLogin ? <LoginPopUp setShowLogin={setShowLogin} /> : <></>}
             <div className="container-full">
                 <Navbar setShowLogin={setShowLogin} />
                 <Routes>
-                    <Route path="/" element={<Customer />} />
+                    <Route path="/" element={<Home />} />
+                    <Route path="/customers" element={<Customer />} />
                     <Route path="/billing" element={<Billing />} />
                     <Route path="/orders" element={<Orders />} />
                     <Route path="/products" element={<Products />}>

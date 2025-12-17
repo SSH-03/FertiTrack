@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 
 const LoginPopUp = ({ setShowLogin }) => {
-    const [currState, setCurrState] = useState("Sign Up");
+    const [currState, setCurrState] = useState("Login");
 
     return (
         <div className="login-popup">

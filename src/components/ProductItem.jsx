@@ -1,19 +1,60 @@
-import React, { useContext, useState } from "react";
+import React, { useContext } from "react";
 import { assets } from "../assets/assests";
 import { StoreContext } from "../context/StoreContext";
 
 const ProductItem = ({
-    id,
+    _id,
     name,
     image,
     next_dose,
     dose_measure,
     unitprice,
     quantityType,
+    description,
 }) => {
-    const [quantity, setQuantity] = useState(0);
-    const { billingItems, addProduct, removeProduct } =
-        useContext(StoreContext);
+    const { billingItems, setBillingItems } = useContext(StoreContext);
+
+    const addProduct = () => {
+        setBillingItems((prev) => {
+            if (prev[_id]) {
+                return {
+                    ...prev,
+                    [_id]: {
+                        ...prev[_id],
+                        quantity: prev[_id].quantity + 1,
+                    },
+                };
+            }
+
+            return {
+                ...prev,
+                [_id]: {
+                    _id,
+                    name,
+                    image,
+                    unitprice,
+                    quantityType,
+                    description,
+                    quantity: 1,
+                    next_dose,
+                    dose_measure,
+                    nextDoseDate: null,
+                    discount: {
+                        autoApply: false,
+                        manual: 0,
+                    },
+                },
+            };
+        });
+    };
+
+    const removeProduct = () => {
+        setBillingItems((prev) => {
+            const updated = { ...prev };
+            delete updated[_id];
+            return updated;
+        });
+    };
 
     return (
         <div className="card p-2 shadow-sm h-100">
@@ -24,41 +65,38 @@ const ProductItem = ({
                     style={{ height: "160px", objectFit: "cover" }}
                 />
 
-                {!billingItems[id] ? (
+                {!billingItems[_id] ? (
                     <img
                         src={assets.add_big_icon}
                         className="position-absolute bottom-0 end-0 m-2"
                         style={{ width: "40px", cursor: "pointer" }}
-                        onClick={() => addProduct(id)}
+                        onClick={addProduct}
                     />
                 ) : (
-                    <div className="d-flex justify-content-between align-items-center p-2">
+                    <div className="d-flex justify-content-between p-2">
                         <img
                             src={assets.remove_icon}
                             style={{ width: "30px", cursor: "pointer" }}
-                            onClick={() => removeProduct(id)}
+                            onClick={removeProduct}
                         />
-                        <p className="fw-bold mb-0">{billingItems[id]}</p>
+                        <p className="fw-bold mb-0">
+                            {billingItems[_id].quantity}
+                        </p>
                         <img
                             src={assets.add_icon}
                             style={{ width: "30px", cursor: "pointer" }}
-                            onClick={() => addProduct(id)}
+                            onClick={addProduct}
                         />
                     </div>
                 )}
             </div>
 
             <div className="card-body">
-                <h5 className="card-title">{name}</h5>
-
-                <p className="mb-1">
-                    Next dose: <b>{next_dose}</b>
-                </p>
-                <p className="mb-1">
-                    Dose measure: <b>{dose_measure}</b>
-                </p>
-                <p className="mb-0">
-                    Unit price: <b>₹{unitprice}</b> / {quantityType}
+                <h5>{name}</h5>
+                <p>Next dose: {next_dose}</p>
+                <p>Measure: {dose_measure}</p>
+                <p>
+                    ₹{unitprice} / {quantityType}
                 </p>
             </div>
         </div>

@@ -4,25 +4,20 @@ import ProductDisplay from "../components/ProductDisplay";
 import { useNavigate } from "react-router-dom";
 
 const Billing = () => {
-    const {
-        selectedCustomer,
-        ferti_products,
-        billingItems,
-        setBillingItems,
-        setOrders,
-        removeProduct,
-    } = useContext(StoreContext);
-
-    const [paymentMode, setPaymentMode] = useState("");
-    const [amountPaid, setAmountPaid] = useState(0);
-
-    // DISCOUNT STATES
-    const [autoRound, setAutoRound] = useState(false);
-    const [manualMode, setManualMode] = useState(false);
-    const [manualDiscount, setManualDiscount] = useState(0);
+    const { selectedCustomer, billingItems, setBillingItems, setOrders } =
+        useContext(StoreContext);
 
     const navigate = useNavigate();
 
+    /* -------------------- PAYMENT & DISCOUNT STATES -------------------- */
+    const [amountPaid, setAmountPaid] = useState(0);
+    const [paymentMode, setPaymentMode] = useState("");
+
+    const [autoDiscount, setAutoDiscount] = useState(false);
+    const [manualDiscountEnabled, setManualDiscountEnabled] = useState(false);
+    const [manualDiscount, setManualDiscount] = useState(0);
+
+    /* -------------------- DATE HELPERS -------------------- */
     const addDuration = (dose, measure) => {
         const date = new Date();
         switch (measure) {
@@ -37,6 +32,8 @@ const Billing = () => {
                 break;
             case "year":
                 date.setFullYear(date.getFullYear() + dose);
+                break;
+            default:
                 break;
         }
         return date;
@@ -54,95 +51,98 @@ const Billing = () => {
         return `${day}${suffix} ${month} ${year}`;
     };
 
-    const calculateTotal = () => {
-        let total = 0;
-        Object.keys(billingItems).forEach((id) => {
-            const qty = billingItems[id];
-            const product = ferti_products.find((p) => p._id === id);
-            if (product) {
-                total += qty * product.unitprice;
-            }
-        });
-        return total;
-    };
+    const toInputFormat = (dateObj) =>
+        new Date(dateObj).toISOString().split("T")[0];
 
-    const rawTotal = calculateTotal();
+    /* -------------------- TOTAL CALCULATION -------------------- */
+    const total = Object.values(billingItems).reduce(
+        (sum, item) => sum + item.quantity * item.unitprice,
+        0
+    );
 
-    const getAutoRoundDiscount = (total) => {
-        if (total < 10) return 0; // do NOT round small totals
-        // const rounded = Math.floor(total / 10) * 10;
-        const rounded = Math.floor(total / 100) * 100;
-        return total - rounded;
-    };
+    /* -------------------- DISCOUNT LOGIC -------------------- */
+    let discountAmount = 0;
 
-    const autoDiscountAmount = getAutoRoundDiscount(rawTotal);
+    if (autoDiscount) {
+        discountAmount = total - Math.floor(total / 100) * 100;
+    }
 
-    // ---------------------------------------------------------------
+    if (manualDiscountEnabled) {
+        discountAmount = manualDiscount;
+    }
 
-    const appliedDiscount = autoRound
-        ? autoDiscountAmount
-        : manualMode
-        ? manualDiscount
-        : 0;
-
-    const finalTotal = rawTotal - appliedDiscount;
-
+    const finalTotal = Math.max(total - discountAmount, 0);
     const balance = finalTotal - amountPaid;
 
+    /* -------------------- SAVE ORDER -------------------- */
     const saveOrder = () => {
-        const orderItems = Object.keys(billingItems).map((id) => {
-            const product = ferti_products.find((p) => p._id === id);
-
-            const dose = product.next_dose;
-            const measure = product.dose_measure;
-            const nextDate = addDuration(dose, measure);
+        const productsArray = Object.values(billingItems).map((item) => {
+            const autoDate = addDuration(item.next_dose, item.dose_measure);
+            const finalDate = item.nextDoseDate
+                ? new Date(item.nextDoseDate)
+                : autoDate;
 
             return {
-                productId: id,
-                productName: product.name,
-                qty: billingItems[id],
-                unitPrice: product.unitprice,
-                total: billingItems[id] * product.unitprice,
-                dose,
-                measure,
-                nextDoseDate: formatPrettyDate(nextDate),
+                ...item,
+                nextDoseDate: finalDate,
+                nextDosePretty: formatPrettyDate(finalDate),
+                totalPrice: item.quantity * item.unitprice,
             };
         });
 
+        const payments = amountPaid
+            ? [
+                  {
+                      amount: amountPaid,
+                      mode: paymentMode,
+                      date: new Date().toISOString(),
+                  },
+              ]
+            : [];
+
         const newOrder = {
-            id: Date.now(),
+            orderId: Date.now(),
+            createdAt: new Date().toISOString(),
+
             customer: selectedCustomer,
-            items: orderItems,
-            totalBeforeDiscount: rawTotal,
-            discountApplied: appliedDiscount,
-            finalTotal,
-            paid: amountPaid,
+
+            products: productsArray,
+
+            billingSummary: {
+                total,
+                discountType: autoDiscount
+                    ? "AUTO_ROUND"
+                    : manualDiscountEnabled
+                    ? "MANUAL"
+                    : "NONE",
+                discountAmount,
+                finalTotal,
+            },
+
+            payments,
             balance,
-            paymentMode,
-            orderDate: new Date().toLocaleString(),
         };
 
-        setOrders((prev) => [...prev, newOrder]);
+        console.log("ORDER DATA 👉", newOrder);
 
+        setOrders((prev) => [...prev, newOrder]);
         setBillingItems({});
         setAmountPaid(0);
-        setManualDiscount(0);
-        setAutoRound(false);
-        setManualMode(false);
 
         navigate("/orders");
     };
 
-    if (!selectedCustomer)
+    if (!selectedCustomer) {
         return (
             <p className="text-danger p-3">
                 Please select a customer before billing.
             </p>
         );
+    }
 
     return (
         <div className="container mt-4">
-            {/* CUSTOMER CARD */}
+            {/* Customer */}
             <div className="card p-3 mb-4 shadow-sm">
                 <h4>{selectedCustomer.name}</h4>
                 <p className="mb-0">📞 {selectedCustomer.phone}</p>
@@ -150,7 +150,7 @@ const Billing = () => {
 
             <ProductDisplay />
 
-            {/* TABLE */}
+            {/* -------------------- BILLING TABLE (UNCHANGED) -------------------- */}
             <h4 className="mt-4">Billing Items</h4>
 
             <table className="table table-bordered table-striped mt-2">
@@ -161,64 +161,109 @@ const Billing = () => {
                         <th>Unit Price</th>
                         <th>Total</th>
                         <th>Next Dose</th>
-                        <th>Dose Measure</th>
+                        <th>Measure</th>
                         <th>Next Dose Date</th>
-                        <th>Remove</th>
                     </tr>
                 </thead>
-                <tbody>
-                    {Object.keys(billingItems).map((id) => {
-                        const qty = billingItems[id];
-                        const product = ferti_products.find(
-                            (p) => p._id === id
-                        );
-                        if (!product) return null;
 
-                        const dose = product.next_dose;
-                        const measure = product.dose_measure;
-                        const autoDate = addDuration(dose, measure);
+                <tbody>
+                    {Object.values(billingItems).map((item) => {
+                        const autoDate = addDuration(
+                            item.next_dose,
+                            item.dose_measure
+                        );
+
+                        const finalDate = item.nextDoseDate
+                            ? new Date(item.nextDoseDate)
+                            : autoDate;
 
                         return (
-                            <tr key={id}>
-                                <td>{product.name}</td>
+                            <tr key={item._id}>
+                                <td>{item.name}</td>
 
                                 <td>
                                     <input
                                         type="number"
                                         className="form-control"
-                                        min="0"
-                                        value={qty}
-                                        onChange={(e) => {
-                                            const newQty = Number(
-                                                e.target.value
-                                            );
-                                            if (newQty <= 0) {
-                                                removeProduct(id);
-                                            } else {
-                                                setBillingItems((prev) => ({
-                                                    ...prev,
-                                                    [id]: newQty,
-                                                }));
-                                            }
-                                        }}
+                                        min="1"
+                                        value={item.quantity}
+                                        onChange={(e) =>
+                                            setBillingItems((prev) => ({
+                                                ...prev,
+                                                [item._id]: {
+                                                    ...prev[item._id],
+                                                    quantity: Number(
+                                                        e.target.value
+                                                    ),
+                                                },
+                                            }))
+                                        }
                                     />
                                 </td>
 
-                                <td>₹{product.unitprice}</td>
-                                <td>₹{qty * product.unitprice}</td>
-
-                                <td>{dose}</td>
-                                <td>{measure}</td>
-
-                                <td>{formatPrettyDate(autoDate)}</td>
+                                <td>₹{item.unitprice}</td>
+                                <td>₹{item.quantity * item.unitprice}</td>
 
                                 <td>
-                                    <button
-                                        className="btn btn-danger btn-sm"
-                                        onClick={() => handleRemove(id)}
+                                    <input
+                                        type="number"
+                                        className="form-control"
+                                        value={item.next_dose}
+                                        onChange={(e) =>
+                                            setBillingItems((prev) => ({
+                                                ...prev,
+                                                [item._id]: {
+                                                    ...prev[item._id],
+                                                    next_dose: Number(
+                                                        e.target.value
+                                                    ),
+                                                },
+                                            }))
+                                        }
+                                    />
+                                </td>
+
+                                <td>
+                                    <select
+                                        className="form-select"
+                                        value={item.dose_measure}
+                                        onChange={(e) =>
+                                            setBillingItems((prev) => ({
+                                                ...prev,
+                                                [item._id]: {
+                                                    ...prev[item._id],
+                                                    dose_measure:
+                                                        e.target.value,
+                                                },
+                                            }))
+                                        }
                                     >
-                                        X
-                                    </button>
+                                        <option value="day">Day</option>
+                                        <option value="week">Week</option>
+                                        <option value="month">Month</option>
+                                        <option value="year">Year</option>
+                                    </select>
+                                </td>
+
+                                <td>
+                                    <input
+                                        type="date"
+                                        className="form-control"
+                                        value={toInputFormat(finalDate)}
+                                        onChange={(e) =>
+                                            setBillingItems((prev) => ({
+                                                ...prev,
+                                                [item._id]: {
+                                                    ...prev[item._id],
+                                                    nextDoseDate:
+                                                        e.target.value,
+                                                },
+                                            }))
+                                        }
+                                    />
+                                    <div className="fw-bold mt-1">
+                                        {formatPrettyDate(finalDate)}
+                                    </div>
                                 </td>
                             </tr>
                         );
@@ -226,49 +271,38 @@ const Billing = () => {
                 </tbody>
             </table>
 
-            {/* TOTAL + DISCOUNT */}
-            <div className="card p-3 shadow-sm mt-4">
-                <div className="mb-3">
-                    <label className="form-label fw-bold">Total Amount</label>
-                    <input
-                        className="form-control"
-                        value={`₹ ${rawTotal}`}
-                        disabled
-                    />
-                </div>
+            {/* -------------------- PAYMENT & DISCOUNT -------------------- */}
+            <div className="card p-4 shadow-sm mt-4">
+                <label className="fw-bold">Total Amount</label>
+                <input
+                    className="form-control mb-3"
+                    value={`₹ ${total}`}
+                    disabled
+                />
 
-                {/* AUTO ROUND DISCOUNT */}
-                <div className="form-check form-switch mb-3">
+                <div className="form-check form-switch mb-2">
                     <input
                         className="form-check-input"
                         type="checkbox"
-                        checked={autoRound}
-                        onChange={(e) => {
-                            setAutoRound(e.target.checked);
-                            if (e.target.checked) {
-                                setManualMode(false);
-                                setManualDiscount(0);
-                            }
+                        checked={autoDiscount}
+                        onChange={() => {
+                            setAutoDiscount(!autoDiscount);
+                            setManualDiscountEnabled(false);
                         }}
                     />
                     <label className="form-check-label fw-bold">
-                        Auto Round Discount (round down to nearest 100)
+                        Auto Round Discount (nearest 100)
                     </label>
                 </div>
 
-                {/* MANUAL DISCOUNT TOGGLE */}
                 <div className="form-check form-switch mb-3">
                     <input
                         className="form-check-input"
                         type="checkbox"
-                        checked={manualMode}
-                        onChange={(e) => {
-                            setManualMode(e.target.checked);
-                            if (e.target.checked) {
-                                setAutoRound(false);
-                            } else {
-                                setManualDiscount(0);
-                            }
+                        checked={manualDiscountEnabled}
+                        onChange={() => {
+                            setManualDiscountEnabled(!manualDiscountEnabled);
+                            setAutoDiscount(false);
                         }}
                     />
                     <label className="form-check-label fw-bold">
@@ -276,65 +310,51 @@ const Billing = () => {
                     </label>
                 </div>
 
-                {/* MANUAL INPUT */}
-                {manualMode && !autoRound && (
-                    <div className="mb-3">
-                        <label className="form-label fw-bold">
-                            Enter Discount Amount
-                        </label>
-                        <input
-                            type="number"
-                            className="form-control"
-                            value={manualDiscount}
-                            onChange={(e) =>
-                                setManualDiscount(Number(e.target.value))
-                            }
-                        />
-                    </div>
-                )}
-
-                {/* Final total */}
-                <div className="mb-3">
-                    <label className="form-label fw-bold">Final Total</label>
-                    <input
-                        className="form-control"
-                        value={`₹ ${finalTotal}`}
-                        disabled
-                    />
-                </div>
-
-                {/* PAYMENT */}
-                <div className="mb-3">
-                    <label className="form-label fw-bold">Payment Mode</label>
-                    <select
-                        className="form-select"
-                        value={paymentMode}
-                        onChange={(e) => setPaymentMode(e.target.value)}
-                    >
-                        <option value="">Select Payment Mode</option>
-                        <option value="cash">Cash</option>
-                        <option value="upi">UPI</option>
-                    </select>
-                </div>
-
-                <div className="mb-3">
-                    <label className="form-label fw-bold">Amount Paid</label>
+                {manualDiscountEnabled && (
                     <input
                         type="number"
-                        className="form-control"
-                        value={amountPaid}
-                        onChange={(e) => setAmountPaid(Number(e.target.value))}
+                        className="form-control mb-3"
+                        placeholder="Enter discount amount"
+                        value={manualDiscount}
+                        onChange={(e) =>
+                            setManualDiscount(Number(e.target.value))
+                        }
                     />
-                </div>
+                )}
 
-                <div className="mb-3">
-                    <label className="form-label fw-bold">Balance</label>
-                    <input
-                        className="form-control"
-                        value={`₹ ${balance}`}
-                        disabled
-                    />
-                </div>
+                <label className="fw-bold">Final Total</label>
+                <input
+                    className="form-control mb-3"
+                    value={`₹ ${finalTotal}`}
+                    disabled
+                />
+
+                <label className="fw-bold">Payment Mode</label>
+                <select
+                    className="form-select mb-3"
+                    value={paymentMode}
+                    onChange={(e) => setPaymentMode(e.target.value)}
+                >
+                    <option value="">Select Payment Mode</option>
+                    <option value="cash">Cash</option>
+                    <option value="upi">UPI</option>
+                    <option value="card">Card</option>
+                </select>
+
+                <label className="fw-bold">Amount Paid</label>
+                <input
+                    type="number"
+                    className="form-control mb-3"
+                    value={amountPaid}
+                    onChange={(e) => setAmountPaid(Number(e.target.value))}
+                />
+
+                <label className="fw-bold">Balance</label>
+                <input
+                    className="form-control mb-3"
+                    value={`₹ ${balance}`}
+                    disabled
+                />
 
                 <button className="btn btn-primary w-100" onClick={saveOrder}>
                     Save Bill

@@ -3,7 +3,7 @@ import { assets } from "../../assets/assests";
 import { Link } from "react-router-dom";
 
 const Navbar = ({ setShowLogin }) => {
-    const [menu, setMenu] = useState("customers");
+    const [menu, setMenu] = useState("home");
     return (
         <div className="container-fluid">
             <nav className="navbar navbar-expand-lg bg-body-tertiary">
@@ -35,6 +35,19 @@ const Navbar = ({ setShowLogin }) => {
                             <li className="nav-item">
                                 <Link
                                     to={"/"}
+                                    onClick={() => setMenu("home")}
+                                    className={`nav-link cursor-pointer${
+                                        menu === "home"
+                                            ? "active border-bottom border-5 border-info"
+                                            : ""
+                                    }`}
+                                >
+                                    Home
+                                </Link>
+                            </li>
+                            <li className="nav-item">
+                                <Link
+                                    to={"customers"}
                                     onClick={() => setMenu("customers")}
                                     className={`nav-link cursor-pointer${
                                         menu === "customers"
@@ -120,17 +133,13 @@ const Navbar = ({ setShowLogin }) => {
                                 />
                                 <p>Logout</p>
                             </div>
-                            <div>
+                            <div className="m-2"> 
                                 {" "}
                                 <button
                                     className="btn btn-success"
                                     onClick={() => setShowLogin(true)}
                                 >
-                                    <img
-                                        className="ms-4"
-                                        src={assets.add_big_icon}
-                                        width="30"
-                                    />
+                                    
                                     Login
                                 </button>
                             </div>
