@@ -40,9 +40,15 @@ const StoreContextProvider = (props) => {
         });
     };
 
+    // useEffect(() => {
+    //     console.log(billingItems);
+    // }, [billingItems]);
+
     useEffect(() => {
-        console.log(billingItems);
-    }, [billingItems]);
+        if(localStorage.getItem("token")) {
+            setToken(localStorage.getItem("token"))
+        }
+    }, []);
 
     const contextValue = {
         customers,
