@@ -8,6 +8,9 @@ const StoreContextProvider = (props) => {
     const [billingItems, setBillingItems] = useState([]);
     const [orders, setOrders] = useState([]);
 
+    const [token, setToken] = useState("")
+
+
     const addProduct = (itemId) => {
         if (!billingItems[itemId]) {
             setBillingItems((prev) => ({ ...prev, [itemId]: 1 }));
@@ -53,6 +56,7 @@ const StoreContextProvider = (props) => {
         removeProduct,
         orders,
         setOrders,
+        token,setToken
     };
 
     return (

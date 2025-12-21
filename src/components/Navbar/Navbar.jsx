@@ -1,9 +1,20 @@
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import { assets } from "../../assets/assests";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { StoreContext } from "../../context/StoreContext";
 
 const Navbar = ({ setShowLogin }) => {
     const [menu, setMenu] = useState("home");
+
+    const { token, setToken } = useContext(StoreContext);
+
+    const navigate = useNavigate();
+
+    const logout = () => {
+        localStorage.removeItem("token");
+        setToken("");
+        navigate("/");
+    };
     return (
         <div className="container-fluid">
             <nav className="navbar navbar-expand-lg bg-body-tertiary">
@@ -112,37 +123,42 @@ const Navbar = ({ setShowLogin }) => {
                                     Contact For Application problems
                                 </Link>
                             </div>
-
-                            <div>
-                                {" "}
-                                <img
-                                    className="ms-4"
-                                    src={assets.profile_icon}
-                                    // src={assets.Login_icon}
-                                    width="30"
-                                />
-                                <p>Profile</p>
-                                {/* <p>Login</p> */}
-                            </div>
-                            <div>
-                                {" "}
-                                <img
-                                    className="ms-4"
-                                    src={assets.logout_icon}
-                                    width="30"
-                                />
-                                <p>Logout</p>
-                            </div>
-                            <div className="m-2"> 
-                                {" "}
-                                <button
-                                    className="btn btn-success"
-                                    onClick={() => setShowLogin(true)}
-                                >
-                                    
-                                    Login
-                                </button>
-                            </div>
+                            {!token ? (
+                                <div className="m-2">
+                                    {" "}
+                                    <button
+                                        className="btn btn-success"
+                                        onClick={() => setShowLogin(true)}
+                                    >
+                                        Login
+                                    </button>
+                                </div>
+                            ) : (
+                                <>
+                                    {" "}
+                                    <div>
+                                        {" "}
+                                        <img
+                                            className="ms-4"
+                                            src={assets.profile_icon}
+                                            // src={assets.Login_icon}
+                                            width="30"
+                                        />
+                                        <p>Profile</p>
+                                        {/* <p>Login</p> */}
+                                    </div>
+                                    <div>
+                                        {" "}
+                                        <img
+                                            className="ms-4"
+                                            src={assets.logout_icon}
+                                            width="30"
+                                            onClick={logout}
+                                        />
+                                        <p>Logout</p>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>
