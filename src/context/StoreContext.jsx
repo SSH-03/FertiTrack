@@ -1,5 +1,7 @@
 import { createContext, useEffect, useState } from "react";
-import { customers, ferti_products } from "../assets/assests";
+import { customers } from "../assets/assests";
+import axios from "axios";
+// import { customers, ferti_products } from "../assets/assests";
 
 export const StoreContext = createContext(null);
 
@@ -8,8 +10,8 @@ const StoreContextProvider = (props) => {
     const [billingItems, setBillingItems] = useState([]);
     const [orders, setOrders] = useState([]);
 
-    const [token, setToken] = useState("")
-
+    const [token, setToken] = useState("");
+    const [ferti_products, setFertiProducts] = useState([]);
 
     const addProduct = (itemId) => {
         if (!billingItems[itemId]) {
@@ -45,10 +47,23 @@ const StoreContextProvider = (props) => {
     // }, [billingItems]);
 
     useEffect(() => {
-        if(localStorage.getItem("token")) {
-            setToken(localStorage.getItem("token"))
+        async function loadData(params) {
+            await fetchProductList();
+            if (localStorage.getItem("token")) {
+                setToken(localStorage.getItem("token"));
+            }
         }
+        loadData()
     }, []);
+
+    const fetchProductList = async () => {
+        const response = await axios.get(
+            import.meta.env.VITE_BACKEND_URL + "/api/product/list"
+        );
+
+        setFertiProducts(response.data.data);
+        console.log("Adithi "+ferti_products);
+    };
 
     const contextValue = {
         customers,
@@ -62,7 +77,8 @@ const StoreContextProvider = (props) => {
         removeProduct,
         orders,
         setOrders,
-        token,setToken
+        token,
+        setToken,
     };
 
     return (
