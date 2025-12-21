@@ -55,12 +55,12 @@ const ProductItem = ({
             return updated;
         });
     };
-
+console.log(image + " Midhun")
     return (
         <div className="card p-2 shadow-sm h-100">
             <div className="position-relative">
                 <img
-                    src={image}
+                    src={import.meta.env.VITE_BACKEND_URL + "/images/" + image}
                     className="card-img-top"
                     style={{ height: "160px", objectFit: "cover" }}
                 />
