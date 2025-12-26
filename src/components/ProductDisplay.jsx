@@ -1,9 +1,19 @@
 import React, { useContext } from "react";
 import { StoreContext } from "../context/StoreContext";
 import ProductItem from "./ProductItem";
+import Loading from "./Loading";
+import FarmLoading from "./Loading/FarmLoading";
 
 const ProductDisplay = () => {
-    const { ferti_products } = useContext(StoreContext);
+    const { productsLoading, ferti_products } = useContext(StoreContext);
+
+    if (productsLoading) {
+        return <Loading />;
+    }
+
+    if (!ferti_products || ferti_products.length === 0) {
+        return <FarmLoading text="No products available" />;
+    }
 
     return (
         <div className="container-full">

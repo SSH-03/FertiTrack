@@ -2,22 +2,28 @@ import React, { useContext, useState } from "react";
 import { StoreContext } from "../context/StoreContext";
 import ProductDisplay from "../components/ProductDisplay";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import { toast } from "react-toastify";
 
 const Billing = () => {
-    const { selectedCustomer, billingItems, setBillingItems, setOrders } =
-        useContext(StoreContext);
+    const {
+        selectedCustomer,
+        billingItems,
+        setBillingItems,
+        setOrders,
+        token,
+    } = useContext(StoreContext);
 
     const navigate = useNavigate();
 
-    /* -------------------- PAYMENT & DISCOUNT STATES -------------------- */
     const [amountPaid, setAmountPaid] = useState(0);
     const [paymentMode, setPaymentMode] = useState("");
-
     const [autoDiscount, setAutoDiscount] = useState(false);
     const [manualDiscountEnabled, setManualDiscountEnabled] = useState(false);
     const [manualDiscount, setManualDiscount] = useState(0);
 
-    /* -------------------- DATE HELPERS -------------------- */
+    const [showConfirm, setShowConfirm] = useState(false);
+
     const addDuration = (dose, measure) => {
         const date = new Date();
         switch (measure) {
@@ -54,83 +60,112 @@ const Billing = () => {
     const toInputFormat = (dateObj) =>
         new Date(dateObj).toISOString().split("T")[0];
 
-    /* -------------------- TOTAL CALCULATION -------------------- */
     const total = Object.values(billingItems).reduce(
         (sum, item) => sum + item.quantity * item.unitprice,
         0
     );
 
-    /* -------------------- DISCOUNT LOGIC -------------------- */
     let discountAmount = 0;
-
-    if (autoDiscount) {
-        discountAmount = total - Math.floor(total / 100) * 100;
-    }
-
-    if (manualDiscountEnabled) {
-        discountAmount = manualDiscount;
-    }
+    if (autoDiscount) discountAmount = total - Math.floor(total / 100) * 100;
+    if (manualDiscountEnabled) discountAmount = manualDiscount;
 
     const finalTotal = Math.max(total - discountAmount, 0);
     const balance = finalTotal - amountPaid;
+    const handleSaveClick = (event) => {
+        event.preventDefault();
 
-    /* -------------------- SAVE ORDER -------------------- */
-    const saveOrder = () => {
-        const productsArray = Object.values(billingItems).map((item) => {
-            const autoDate = addDuration(item.next_dose, item.dose_measure);
-            const finalDate = item.nextDoseDate
-                ? new Date(item.nextDoseDate)
-                : autoDate;
+        // ---------------- Validation ----------------
+        if (!selectedCustomer) {
+            toast.error("Please select a customer before billing.");
+            return;
+        }
+        if (Object.keys(billingItems).length === 0) {
+            toast.error("Please add products before billing.");
+            return;
+        }
+        if (finalTotal <= 0) {
+            toast.error("Final total must be greater than 0.");
+            return;
+        }
+        if (!paymentMode) {
+            toast.error("Please select a payment mode.");
+            return;
+        }
 
-            return {
-                ...item,
-                nextDoseDate: finalDate,
-                nextDosePretty: formatPrettyDate(finalDate),
-                totalPrice: item.quantity * item.unitprice,
-            };
-        });
-
-        const payments = amountPaid
-            ? [
-                  {
-                      amount: amountPaid,
-                      mode: paymentMode,
-                      date: new Date().toISOString(),
-                  },
-              ]
-            : [];
-
-        const newOrder = {
-            orderId: Date.now(),
-            createdAt: new Date().toISOString(),
-
-            customer: selectedCustomer,
-
-            products: productsArray,
-
-            billingSummary: {
-                total,
-                discountType: autoDiscount
-                    ? "AUTO_ROUND"
-                    : manualDiscountEnabled
-                    ? "MANUAL"
-                    : "NONE",
-                discountAmount,
-                finalTotal,
-            },
-
-            payments,
-            balance,
-        };
-
-        console.log("ORDER DATA 👉", newOrder);
-
-        setOrders((prev) => [...prev, newOrder]);
-        setBillingItems({});
-        setAmountPaid(0);
-
-        navigate("/orders");
+        setShowConfirm(true); // Show confirmation modal
     };
+   const confirmSaveOrder = async () => {
+       const productsArray = Object.values(billingItems).map((item) => {
+           const autoDate = addDuration(item.next_dose, item.dose_measure);
+           const finalDate = item.nextDoseDate
+               ? new Date(item.nextDoseDate)
+               : autoDate;
+           return {
+               ...item,
+               nextDoseDate: finalDate,
+               nextDosePretty: formatPrettyDate(finalDate),
+               totalPrice: item.quantity * item.unitprice,
+           };
+       });
+
+       const payments = amountPaid
+           ? [
+                 {
+                     amount: amountPaid,
+                     mode: paymentMode,
+                     date: new Date().toISOString(),
+                 },
+             ]
+           : [];
+
+       const newOrder = {
+           orderId: Date.now(),
+           createdAt: new Date().toISOString(),
+           customer: selectedCustomer._id,
+           products: productsArray,
+           billingSummary: {
+               total,
+               discountType: autoDiscount
+                   ? "AUTO_ROUND"
+                   : manualDiscountEnabled
+                   ? "MANUAL"
+                   : "NONE",
+               discountAmount,
+               finalTotal,
+           },
+           payments,
+           balance,
+       };
+
+       try {
+           const response = await axios.post(
+               import.meta.env.VITE_BACKEND_URL + "/api/order/place",
+               newOrder,
+               { headers: { token } }
+           );
+
+           if (response.data.success) {
+               toast.success(response.data.message);
+
+               // ✅ Clear the billing items after successful save
+               setBillingItems({});
+               setAmountPaid(0);
+               setPaymentMode("");
+               setManualDiscount(0);
+               setAutoDiscount(false);
+               setManualDiscountEnabled(false);
+
+               setShowConfirm(false); // close modal
+               navigate("/orders");
+           } else {
+               toast.error(response.data.message);
+           }
+       } catch (err) {
+           toast.error("Something went wrong while saving the order.");
+       }
+   };
+
+
 
     if (!selectedCustomer) {
         return (
@@ -141,226 +176,333 @@ const Billing = () => {
     }
 
     return (
-        <div className="container mt-4">
-            {/* Customer */}
-            <div className="card p-3 mb-4 shadow-sm">
-                <h4>{selectedCustomer.name}</h4>
-                <p className="mb-0">📞 {selectedCustomer.phone}</p>
-            </div>
+        <>
+            <form className="container mt-4" onSubmit={handleSaveClick}>
+                {/* Customer */}
+                <div className="card p-3 mb-4 shadow-sm">
+                    <h4>{selectedCustomer.name}</h4>
+                    <p className="mb-0">📞 {selectedCustomer.phone}</p>
+                </div>
 
-            <ProductDisplay />
+                <ProductDisplay />
 
-            {/* -------------------- BILLING TABLE (UNCHANGED) -------------------- */}
-            <h4 className="mt-4">Billing Items</h4>
-
-            <table className="table table-bordered table-striped mt-2">
-                <thead className="table-dark">
-                    <tr>
-                        <th>Product</th>
-                        <th>Qty</th>
-                        <th>Unit Price</th>
-                        <th>Total</th>
-                        <th>Next Dose</th>
-                        <th>Measure</th>
-                        <th>Next Dose Date</th>
-                    </tr>
-                </thead>
-
-                <tbody>
-                    {Object.values(billingItems).map((item) => {
-                        const autoDate = addDuration(
-                            item.next_dose,
-                            item.dose_measure
-                        );
-
-                        const finalDate = item.nextDoseDate
-                            ? new Date(item.nextDoseDate)
-                            : autoDate;
-
-                        return (
-                            <tr key={item._id}>
-                                <td>{item.name}</td>
-
-                                <td>
-                                    <input
-                                        type="number"
-                                        className="form-control"
-                                        min="1"
-                                        value={item.quantity}
-                                        onChange={(e) =>
-                                            setBillingItems((prev) => ({
-                                                ...prev,
-                                                [item._id]: {
-                                                    ...prev[item._id],
-                                                    quantity: Number(
-                                                        e.target.value
-                                                    ),
-                                                },
-                                            }))
-                                        }
-                                    />
-                                </td>
-
-                                <td>₹{item.unitprice}</td>
-                                <td>₹{item.quantity * item.unitprice}</td>
-
-                                <td>
-                                    <input
-                                        type="number"
-                                        className="form-control"
-                                        value={item.next_dose}
-                                        onChange={(e) =>
-                                            setBillingItems((prev) => ({
-                                                ...prev,
-                                                [item._id]: {
-                                                    ...prev[item._id],
-                                                    next_dose: Number(
-                                                        e.target.value
-                                                    ),
-                                                },
-                                            }))
-                                        }
-                                    />
-                                </td>
-
-                                <td>
-                                    <select
-                                        className="form-select"
-                                        value={item.dose_measure}
-                                        onChange={(e) =>
-                                            setBillingItems((prev) => ({
-                                                ...prev,
-                                                [item._id]: {
-                                                    ...prev[item._id],
-                                                    dose_measure:
-                                                        e.target.value,
-                                                },
-                                            }))
-                                        }
-                                    >
-                                        <option value="day">Day</option>
-                                        <option value="week">Week</option>
-                                        <option value="month">Month</option>
-                                        <option value="year">Year</option>
-                                    </select>
-                                </td>
-
-                                <td>
-                                    <input
-                                        type="date"
-                                        className="form-control"
-                                        value={toInputFormat(finalDate)}
-                                        onChange={(e) =>
-                                            setBillingItems((prev) => ({
-                                                ...prev,
-                                                [item._id]: {
-                                                    ...prev[item._id],
-                                                    nextDoseDate:
-                                                        e.target.value,
-                                                },
-                                            }))
-                                        }
-                                    />
-                                    <div className="fw-bold mt-1">
-                                        {formatPrettyDate(finalDate)}
-                                    </div>
+                <h4 className="mt-4">Billing Items</h4>
+                <table className="table table-bordered table-striped mt-2">
+                    <thead className="table-dark">
+                        <tr>
+                            <th>Product</th>
+                            <th>Qty</th>
+                            <th>Unit Price</th>
+                            <th>Total</th>
+                            <th>Next Dose</th>
+                            <th>Measure</th>
+                            <th>Next Dose Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {Object.keys(billingItems).length === 0 ? (
+                            <tr>
+                                <td
+                                    colSpan="7"
+                                    className="text-center text-danger "
+                                >
+                                    No products added yet. Please add products.
                                 </td>
                             </tr>
-                        );
-                    })}
-                </tbody>
-            </table>
+                        ) : (
+                            Object.values(billingItems).map((item) => {
+                                const autoDate = addDuration(
+                                    item.next_dose,
+                                    item.dose_measure
+                                );
+                                const finalDate = item.nextDoseDate
+                                    ? new Date(item.nextDoseDate)
+                                    : autoDate;
 
-            {/* -------------------- PAYMENT & DISCOUNT -------------------- */}
-            <div className="card p-4 shadow-sm mt-4">
-                <label className="fw-bold">Total Amount</label>
-                <input
-                    className="form-control mb-3"
-                    value={`₹ ${total}`}
-                    disabled
-                />
+                                return (
+                                    <tr key={item._id}>
+                                        <td>{item.name}</td>
+                                        <td>
+                                            <input
+                                                type="number"
+                                                className="form-control"
+                                                min="1"
+                                                value={item.quantity}
+                                                onChange={(e) =>
+                                                    setBillingItems((prev) => ({
+                                                        ...prev,
+                                                        [item._id]: {
+                                                            ...prev[item._id],
+                                                            quantity: Number(
+                                                                e.target.value
+                                                            ),
+                                                        },
+                                                    }))
+                                                }
+                                            />
+                                        </td>
+                                        <td>₹{item.unitprice}</td>
+                                        <td>
+                                            ₹{item.quantity * item.unitprice}
+                                        </td>
+                                        <td>
+                                            <input
+                                                type="number"
+                                                className="form-control"
+                                                value={item.next_dose}
+                                                onChange={(e) =>
+                                                    setBillingItems((prev) => ({
+                                                        ...prev,
+                                                        [item._id]: {
+                                                            ...prev[item._id],
+                                                            next_dose: Number(
+                                                                e.target.value
+                                                            ),
+                                                        },
+                                                    }))
+                                                }
+                                            />
+                                        </td>
+                                        <td>
+                                            <select
+                                                className="form-select"
+                                                value={item.dose_measure}
+                                                onChange={(e) =>
+                                                    setBillingItems((prev) => ({
+                                                        ...prev,
+                                                        [item._id]: {
+                                                            ...prev[item._id],
+                                                            dose_measure:
+                                                                e.target.value,
+                                                        },
+                                                    }))
+                                                }
+                                            >
+                                                <option value="day">Day</option>
+                                                <option value="week">
+                                                    Week
+                                                </option>
+                                                <option value="month">
+                                                    Month
+                                                </option>
+                                                <option value="year">
+                                                    Year
+                                                </option>
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <input
+                                                type="date"
+                                                className="form-control"
+                                                value={toInputFormat(finalDate)}
+                                                onChange={(e) =>
+                                                    setBillingItems((prev) => ({
+                                                        ...prev,
+                                                        [item._id]: {
+                                                            ...prev[item._id],
+                                                            nextDoseDate:
+                                                                e.target.value,
+                                                        },
+                                                    }))
+                                                }
+                                            />
+                                            <div className="fw-bold mt-1">
+                                                {formatPrettyDate(finalDate)}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })
+                        )}
+                    </tbody>
+                </table>
 
-                <div className="form-check form-switch mb-2">
+                {/* -------------------- PAYMENT & DISCOUNT -------------------- */}
+                <div className="card p-4 shadow-sm mt-4">
+                    <label className="fw-bold">Total Amount</label>
                     <input
-                        className="form-check-input"
-                        type="checkbox"
-                        checked={autoDiscount}
-                        onChange={() => {
-                            setAutoDiscount(!autoDiscount);
-                            setManualDiscountEnabled(false);
-                        }}
+                        className="form-control mb-3"
+                        value={`₹ ${total}`}
+                        disabled
                     />
-                    <label className="form-check-label fw-bold">
-                        Auto Round Discount (nearest 100)
-                    </label>
-                </div>
 
-                <div className="form-check form-switch mb-3">
+                    <div className="form-check form-switch mb-2">
+                        <input
+                            className="form-check-input"
+                            type="checkbox"
+                            checked={autoDiscount}
+                            onChange={() => {
+                                setAutoDiscount(!autoDiscount);
+                                setManualDiscountEnabled(false);
+                            }}
+                        />
+                        <label className="form-check-label fw-bold">
+                            Auto Round Discount (nearest 100)
+                        </label>
+                    </div>
+
+                    <div className="form-check form-switch mb-3">
+                        <input
+                            className="form-check-input"
+                            type="checkbox"
+                            checked={manualDiscountEnabled}
+                            onChange={() => {
+                                setManualDiscountEnabled(
+                                    !manualDiscountEnabled
+                                );
+                                setAutoDiscount(false);
+                            }}
+                        />
+                        <label className="form-check-label fw-bold">
+                            Manual Discount
+                        </label>
+                    </div>
+
+                    {manualDiscountEnabled && (
+                        <input
+                            type="number"
+                            className="form-control mb-3"
+                            placeholder="Enter discount amount"
+                            value={manualDiscount}
+                            onChange={(e) =>
+                                setManualDiscount(Number(e.target.value))
+                            }
+                        />
+                    )}
+
+                    <label className="fw-bold">Final Total</label>
                     <input
-                        className="form-check-input"
-                        type="checkbox"
-                        checked={manualDiscountEnabled}
-                        onChange={() => {
-                            setManualDiscountEnabled(!manualDiscountEnabled);
-                            setAutoDiscount(false);
-                        }}
+                        className="form-control mb-3"
+                        value={`₹ ${finalTotal}`}
+                        disabled
                     />
-                    <label className="form-check-label fw-bold">
-                        Manual Discount
-                    </label>
-                </div>
 
-                {manualDiscountEnabled && (
+                    <label className="fw-bold">Payment Mode</label>
+                    <select
+                        className="form-select mb-3"
+                        value={paymentMode}
+                        onChange={(e) => setPaymentMode(e.target.value)}
+                    >
+                        <option value="">Select Payment Mode</option>
+                        <option value="cash">Cash</option>
+                        <option value="upi">UPI</option>
+                        <option value="card">Card</option>
+                    </select>
+
+                    <label className="fw-bold">Amount Paid</label>
                     <input
                         type="number"
                         className="form-control mb-3"
-                        placeholder="Enter discount amount"
-                        value={manualDiscount}
-                        onChange={(e) =>
-                            setManualDiscount(Number(e.target.value))
-                        }
+                        value={amountPaid}
+                        onChange={(e) => setAmountPaid(Number(e.target.value))}
                     />
-                )}
 
-                <label className="fw-bold">Final Total</label>
-                <input
-                    className="form-control mb-3"
-                    value={`₹ ${finalTotal}`}
-                    disabled
-                />
+                    <label className="fw-bold">Balance</label>
+                    <input
+                        className="form-control mb-3"
+                        value={`₹ ${balance}`}
+                        disabled
+                    />
 
-                <label className="fw-bold">Payment Mode</label>
-                <select
-                    className="form-select mb-3"
-                    value={paymentMode}
-                    onChange={(e) => setPaymentMode(e.target.value)}
+                    <button type="submit" className="btn btn-primary w-100">
+                        Save Bill
+                    </button>
+                </div>
+            </form>
+            {showConfirm && (
+                <div
+                    className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center"
+                    style={{
+                        backgroundColor: "rgba(0, 0, 0, 0.55)",
+                        zIndex: 1050,
+                    }}
+                    onClick={() => setShowConfirm(false)}
                 >
-                    <option value="">Select Payment Mode</option>
-                    <option value="cash">Cash</option>
-                    <option value="upi">UPI</option>
-                    <option value="card">Card</option>
-                </select>
+                    <div
+                        className="modal-dialog"
+                        style={{ maxWidth: "520px", width: "100%" }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="modal-content bg-white rounded-4 shadow-lg">
+                            {/* HEADER */}
+                            <div className="modal-header px-4 py-3 border-bottom">
+                                <h5 className="modal-title fw-bold">
+                                    Confirm Billing
+                                </h5>
+                                <button
+                                    type="button"
+                                    className="btn-close"
+                                    onClick={() => setShowConfirm(false)}
+                                ></button>
+                            </div>
 
-                <label className="fw-bold">Amount Paid</label>
-                <input
-                    type="number"
-                    className="form-control mb-3"
-                    value={amountPaid}
-                    onChange={(e) => setAmountPaid(Number(e.target.value))}
-                />
+                            {/* BODY */}
+                            <div className="modal-body px-4 py-3">
+                                {/* PRODUCTS */}
+                                <h6 className="fw-bold mb-3">
+                                    Products Summary
+                                </h6>
 
-                <label className="fw-bold">Balance</label>
-                <input
-                    className="form-control mb-3"
-                    value={`₹ ${balance}`}
-                    disabled
-                />
+                                <div className="border rounded-3 mb-3">
+                                    {Object.values(billingItems).map((item) => (
+                                        <div
+                                            key={item._id}
+                                            className="d-flex justify-content-between align-items-center px-3 py-2 border-bottom"
+                                        >
+                                            <div>
+                                                <div className="fw-semibold">
+                                                    {item.name}
+                                                </div>
+                                                <small className="text-muted">
+                                                    {item.quantity} × ₹
+                                                    {item.unitprice}
+                                                </small>
+                                            </div>
+                                            <div className="fw-bold">
+                                                ₹
+                                                {item.quantity * item.unitprice}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
 
-                <button className="btn btn-primary w-100" onClick={saveOrder}>
-                    Save Bill
-                </button>
-            </div>
-        </div>
+                                {/* TOTALS */}
+                                <div className="bg-light rounded-3 p-3">
+                                    <div className="d-flex justify-content-between mb-2">
+                                        <span>Total</span>
+                                        <strong>₹{finalTotal}</strong>
+                                    </div>
+                                    <div className="d-flex justify-content-between mb-2">
+                                        <span>Amount Paid</span>
+                                        <strong>₹{amountPaid}</strong>
+                                    </div>
+                                    <div className="d-flex justify-content-between text-danger fw-bold">
+                                        <span>Balance</span>
+                                        <span>₹{balance}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* FOOTER */}
+                            <div className="modal-footer px-4 py-3 border-top">
+                                <button
+                                    className="btn btn-outline-secondary px-4"
+                                    onClick={() => setShowConfirm(false)}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    className="btn btn-primary px-4 ms-2"
+                                    onClick={confirmSaveOrder}
+                                >
+                                    Confirm & Save
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </>
     );
 };
 
