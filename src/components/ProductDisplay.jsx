@@ -8,7 +8,7 @@ const ProductDisplay = () => {
     const { productsLoading, ferti_products } = useContext(StoreContext);
 
     if (productsLoading) {
-        return <Loading />;
+        return <FarmLoading text="Products are loading" />;
     }
 
     if (!ferti_products || ferti_products.length === 0) {

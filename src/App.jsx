@@ -16,17 +16,18 @@ import ProductAdd from "./pages/ProductAdd";
 import Home from "./pages/Home";
 
 import { ToastContainer, toast } from "react-toastify";
+import Analytics from "./pages/Analytics";
+import Profile from "./pages/Profile";
 
 function App() {
     // const [activeTab, setActiveTab] = useState("customers");
-    const [showLogin, setShowLogin] = useState(false);
 
     return (
         <>
-        <ToastContainer/>
-            {showLogin ? <LoginPopUp setShowLogin={setShowLogin} /> : <></>}
+            <ToastContainer />
+           
             <div className="container-full">
-                <Navbar setShowLogin={setShowLogin} />
+                <Navbar />
                 <Routes>
                     <Route path="/" element={<Home />} />
                     <Route path="/customers" element={<Customer />} />
@@ -37,6 +38,9 @@ function App() {
                         <Route path="/products/add" element={<ProductAdd />} />
                     </Route>
                     <Route path="/contact" element={<Contact />} />
+                    <Route path="/analytics" element={<Analytics />} />
+                    <Route path="/profile" element={<Profile />} />
+
                 </Routes>
             </div>
         </>

@@ -4,7 +4,7 @@ import FarmLoading from './Loading/FarmLoading';
 const Loading = () => {
   return (
       <div>
-          <FarmLoading text="Loading..." />
+          <FarmLoading text="Hello Welcome to FertiTrack application......" />
       </div>
   );
 }
