@@ -4,6 +4,7 @@ import profile_icon from "./profile_icon.png";
 import add_big_icon from "./add_big_icon.png";
 import add_icon from "./add_icon.png";
 import remove_icon from "./remove_icon.png";
+import contant_icon from "./contant_icon.png";
 
 export const assets = {
     FertiTrack_icon,
@@ -11,7 +12,8 @@ export const assets = {
     profile_icon,
     add_big_icon,
     add_icon,
-    remove_icon
+    remove_icon,
+    contant_icon
 
 };
 

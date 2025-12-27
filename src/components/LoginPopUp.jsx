@@ -1,133 +1,131 @@
 import axios from "axios";
 import React, { useContext, useState } from "react";
 import { StoreContext } from "../context/StoreContext";
+import { useNavigate } from "react-router-dom";
 
-const LoginPopUp = ({ setShowLogin }) => {
-    const { setToken } = useContext(StoreContext);
+const LoginPopUp = () => {
+    const { setToken, setSelectedTab } = useContext(StoreContext);
+    
+    const navigate = useNavigate();
 
     const [currState, setCurrState] = useState("Login");
-
     const [data, setData] = useState({
         name: "",
         email: "",
         password: "",
     });
 
-    const onChangeHandler = (event) => {
-        const name = event.target.name;
-        const value = event.target.value;
-        setData((data) => ({ ...data, [name]: value }));
+    const onChangeHandler = (e) => {
+        setData({ ...data, [e.target.name]: e.target.value });
     };
 
-    // useEffect(() => {
-    //     console.log(data);
-    // },[data])
+    const onLogin = async (e) => {
+        e.preventDefault();
 
-    const onLogin = async (event) => {
-        event.preventDefault();
-        let newURL = import.meta.env.VITE_BACKEND_URL;
-        if (currState === "Login") {
-            newURL += "/api/user/login";
-        } else {
-            newURL += "/api/user/register";
-        }
+        let url = import.meta.env.VITE_BACKEND_URL;
+        url += currState === "Login" ? "/api/user/login" : "/api/user/register";
 
-        const response = await axios.post(newURL, data);
+        try {
+            const response = await axios.post(url, data);
 
-        if (response.data.success) {
-            setToken(response.data.token);
-            localStorage.setItem("token", response.data.token);
-            setShowLogin(false)
-        }
-        else{
-            alert(response.data.message )
+            if (response.data.success) {
+                setToken(response.data.token);
+                localStorage.setItem("token", response.data.token);
+                navigate("customers")
+                setSelectedTab("customers")
+                
+            } else {
+                alert(response.data.message);
+            }
+        } catch (error) {
+            alert("Server error");
         }
     };
+
     return (
-        <div className="login-popup">
-            <form
-                className="login-popup-container  border border-dark border-4"
-                onSubmit={onLogin}
-            >
-                <div className="position-relative">
-                    <h2>{currState}</h2>
+        <div className="card shadow p-4">
+            <h4 className="text-center mb-3">{currState}</h4>
 
-                    <div
-                        className="  position-absolute top-0 end-0 hovermanual p-2 text-dark"
-                        onClick={() => setShowLogin(false)}
-                    >
-                        <i class="bi bi-x-circle"></i>
-                    </div>
-                </div>
-                <div>
-                    {currState === "Login" ? (
-                        <></>
-                    ) : (
-                        <input
-                            type="text"
-                            placeholder="Your Name"
-                            required
-                            className="form-control  mb-2"
-                            name="name"
-                            onChange={onChangeHandler}
-                            value={data.name}
-                        />
-                    )}
-
+            <form onSubmit={onLogin}>
+                {/* Name (Signup only) */}
+                {currState === "Sign Up" && (
                     <input
-                        type="email"
-                        placeholder="Email"
-                        required
-                        className="form-control  mb-2"
-                        name="email"
+                        type="text"
+                        className="form-control mb-2"
+                        placeholder="Your Name"
+                        name="name"
+                        value={data.name}
                         onChange={onChangeHandler}
-                        value={data.email}
+                        required
                     />
+                )}
+
+                {/* Email */}
+                <input
+                    type="email"
+                    className="form-control mb-2"
+                    placeholder="Email"
+                    name="email"
+                    value={data.email}
+                    onChange={onChangeHandler}
+                    required
+                />
+
+                {/* Password */}
+                <input
+                    type="password"
+                    className="form-control mb-3"
+                    placeholder="Password"
+                    name="password"
+                    value={data.password}
+                    onChange={onChangeHandler}
+                    required
+                />
+
+                {/* Terms */}
+                <div className="form-check mb-3">
                     <input
-                        type="password"
-                        placeholder="Password"
+                        className="form-check-input"
+                        type="checkbox"
                         required
-                        className="form-control  mb-2"
-                        name="password"
-                        onChange={onChangeHandler}
-                        value={data.password}
                     />
+                    <label className="form-check-label">
+                        I agree to the terms & conditions
+                    </label>
                 </div>
 
-                <button
-                    type="submit"
-                    className="btn btn-outline-danger fw-bold fs-6"
-                >
-                    {currState === "Sign Up" ? "Create account" : "Login"}
+                {/* Submit */}
+                <button className="btn btn-danger w-100 fw-bold">
+                    {currState === "Login" ? "Login" : "Create Account"}
                 </button>
+            </form>
 
-                <div className="hstack from-group">
-                    <input type="checkbox" className="p-5" required></input>
-                    <p className="m-2">I agree the terms and condition</p>
-                </div>
-
+           
+            {/* <p className="text-center mt-3 mb-0">
                 {currState === "Login" ? (
-                    <p>
-                        Create a new account?{" "}
+                    <>
+                        New user?{" "}
                         <span
-                            className="text-danger fw-bold fs-6 text-decoration-underline"
-                            onClick={() => setCurrState("Sign up")}
+                            className="text-danger fw-bold"
+                            role="button"
+                            onClick={() => setCurrState("Sign Up")}
                         >
-                            Click here
+                            Sign up
                         </span>
-                    </p>
+                    </>
                 ) : (
-                    <p>
-                        Already have a account?{" "}
+                    <>
+                        Already have an account?{" "}
                         <span
-                            className="text-danger fw-bold fs-6 text-decoration-underline"
+                            className="text-danger fw-bold"
+                            role="button"
                             onClick={() => setCurrState("Login")}
                         >
-                            Login here
+                            Login
                         </span>
-                    </p>
+                    </>
                 )}
-            </form>
+            </p> */}
         </div>
     );
 };

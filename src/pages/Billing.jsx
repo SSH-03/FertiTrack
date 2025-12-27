@@ -1,4 +1,4 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { StoreContext } from "../context/StoreContext";
 import ProductDisplay from "../components/ProductDisplay";
 import { useNavigate } from "react-router-dom";
@@ -6,13 +6,8 @@ import axios from "axios";
 import { toast } from "react-toastify";
 
 const Billing = () => {
-    const {
-        selectedCustomer,
-        billingItems,
-        setBillingItems,
-        setOrders,
-        token,
-    } = useContext(StoreContext);
+    const {setSelectedTab, selectedCustomer, billingItems, setBillingItems, token } =
+        useContext(StoreContext);
 
     const navigate = useNavigate();
 
@@ -70,11 +65,10 @@ const Billing = () => {
     if (manualDiscountEnabled) discountAmount = manualDiscount;
 
     const finalTotal = Math.max(total - discountAmount, 0);
-    const balance = finalTotal - amountPaid;
+    const balance = Math.max(finalTotal - amountPaid, 0);
     const handleSaveClick = (event) => {
         event.preventDefault();
 
-        // ---------------- Validation ----------------
         if (!selectedCustomer) {
             toast.error("Please select a customer before billing.");
             return;
@@ -94,87 +88,86 @@ const Billing = () => {
 
         setShowConfirm(true); // Show confirmation modal
     };
-   const confirmSaveOrder = async () => {
-       const productsArray = Object.values(billingItems).map((item) => {
-           const autoDate = addDuration(item.next_dose, item.dose_measure);
-           const finalDate = item.nextDoseDate
-               ? new Date(item.nextDoseDate)
-               : autoDate;
-           return {
-               ...item,
-               nextDoseDate: finalDate,
-               nextDosePretty: formatPrettyDate(finalDate),
-               totalPrice: item.quantity * item.unitprice,
-           };
-       });
+    const confirmSaveOrder = async () => {
+        const productsArray = Object.values(billingItems).map((item) => {
+            const autoDate = addDuration(item.next_dose, item.dose_measure);
+            const finalDate = item.nextDoseDate
+                ? new Date(item.nextDoseDate)
+                : autoDate;
+            return {
+                ...item,
+                nextDoseDate: finalDate,
+                nextDosePretty: formatPrettyDate(finalDate),
+                totalPrice: item.quantity * item.unitprice,
+            };
+        });
 
-       const payments = amountPaid
-           ? [
-                 {
-                     amount: amountPaid,
-                     mode: paymentMode,
-                     date: new Date().toISOString(),
-                 },
-             ]
-           : [];
+        const payments = amountPaid
+            ? [
+                  {
+                      amount: amountPaid,
+                      mode: paymentMode,
+                      date: new Date().toISOString(),
+                  },
+              ]
+            : [];
 
-       const newOrder = {
-           orderId: Date.now(),
-           createdAt: new Date().toISOString(),
-           customer: selectedCustomer._id,
-           products: productsArray,
-           billingSummary: {
-               total,
-               discountType: autoDiscount
-                   ? "AUTO_ROUND"
-                   : manualDiscountEnabled
-                   ? "MANUAL"
-                   : "NONE",
-               discountAmount,
-               finalTotal,
-           },
-           payments,
-           balance,
-       };
+        const newOrder = {
+            orderId: Date.now(),
+            createdAt: new Date().toISOString(),
+            customer: selectedCustomer,
+            products: productsArray,
+            billingSummary: {
+                total,
+                discountType: autoDiscount
+                    ? "AUTO_ROUND"
+                    : manualDiscountEnabled
+                    ? "MANUAL"
+                    : "NONE",
+                discountAmount,
+                finalTotal,
+            },
+            payments,
+            balance,
+        };
 
-       try {
-           const response = await axios.post(
-               import.meta.env.VITE_BACKEND_URL + "/api/order/place",
-               newOrder,
-               { headers: { token } }
-           );
+        try {
+            const response = await axios.post(
+                import.meta.env.VITE_BACKEND_URL + "/api/order/place",
+                newOrder,
+                { headers: { token } }
+            );
 
-           if (response.data.success) {
-               toast.success(response.data.message);
+            if (response.data.success) {
+                toast.success(response.data.message);
 
-               // ✅ Clear the billing items after successful save
-               setBillingItems({});
-               setAmountPaid(0);
-               setPaymentMode("");
-               setManualDiscount(0);
-               setAutoDiscount(false);
-               setManualDiscountEnabled(false);
+                setBillingItems({});
+                setAmountPaid(0);
+                setPaymentMode("");
+                setManualDiscount(0);
+                setAutoDiscount(false);
+                setManualDiscountEnabled(false);
 
-               setShowConfirm(false); // close modal
-               navigate("/orders");
-           } else {
-               toast.error(response.data.message);
-           }
-       } catch (err) {
-           toast.error("Something went wrong while saving the order.");
-       }
-   };
+                setShowConfirm(false); // close modal
+                navigate("/orders");
+            } else {
+                toast.error(response.data.message);
+            }
+        } catch (err) {
+            toast.error("Something went wrong while saving the order.");
+        }
+    };
 
-
-
-    if (!selectedCustomer) {
-        return (
-            <p className="text-danger p-3">
-                Please select a customer before billing.
-            </p>
-        );
-    }
-
+    useEffect(() => {
+        if (!selectedCustomer) {
+            navigate("/customers");
+            setSelectedTab("customers")
+            toast.error("Please select the customer")
+        }
+    }, [selectedCustomer, navigate]);
+if (!selectedCustomer) {
+    return null;
+}
     return (
         <>
             <form className="container mt-4" onSubmit={handleSaveClick}>
@@ -317,7 +310,7 @@ const Billing = () => {
                     </tbody>
                 </table>
 
-                {/* -------------------- PAYMENT & DISCOUNT -------------------- */}
+
                 <div className="card p-4 shadow-sm mt-4">
                     <label className="fw-bold">Total Amount</label>
                     <input
@@ -394,7 +387,13 @@ const Billing = () => {
                         type="number"
                         className="form-control mb-3"
                         value={amountPaid}
-                        onChange={(e) => setAmountPaid(Number(e.target.value))}
+                        min="0"
+                        max={finalTotal}
+                        onChange={(e) =>
+                            setAmountPaid(
+                                Math.min(Number(e.target.value), finalTotal)
+                            )
+                        }
                     />
 
                     <label className="fw-bold">Balance</label>
@@ -404,7 +403,11 @@ const Billing = () => {
                         disabled
                     />
 
-                    <button type="submit" className="btn btn-primary w-100">
+                    <button
+                        type="submit"
+                        className="btn btn-primary w-100"
+                        disabled={finalTotal <= 0 || !paymentMode}
+                    >
                         Save Bill
                     </button>
                 </div>

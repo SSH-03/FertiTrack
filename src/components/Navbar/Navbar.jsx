@@ -3,10 +3,9 @@ import { assets } from "../../assets/assests";
 import { Link, useNavigate } from "react-router-dom";
 import { StoreContext } from "../../context/StoreContext";
 
-const Navbar = ({ setShowLogin }) => {
-    const [menu, setMenu] = useState("home");
-
-    const { token, setToken } = useContext(StoreContext);
+const Navbar = () => {
+    const { selectedTab, setSelectedTab, token, setToken } =
+        useContext(StoreContext);
 
     const navigate = useNavigate();
 
@@ -14,6 +13,7 @@ const Navbar = ({ setShowLogin }) => {
         localStorage.removeItem("token");
         setToken("");
         navigate("/");
+        setSelectedTab("home");
     };
     return (
         <div className="container-fluid">
@@ -46,9 +46,9 @@ const Navbar = ({ setShowLogin }) => {
                             <li className="nav-item">
                                 <Link
                                     to={"/"}
-                                    onClick={() => setMenu("home")}
+                                    onClick={() => setSelectedTab("home")}
                                     className={`nav-link cursor-pointer${
-                                        menu === "home"
+                                        selectedTab === "home"
                                             ? "active border-bottom border-5 border-info"
                                             : ""
                                     }`}
@@ -56,113 +56,152 @@ const Navbar = ({ setShowLogin }) => {
                                     Home
                                 </Link>
                             </li>
-                            <li className="nav-item">
-                                <Link
-                                    to={"customers"}
-                                    onClick={() => setMenu("customers")}
-                                    className={`nav-link cursor-pointer${
-                                        menu === "customers"
-                                            ? "active border-bottom border-5 border-info"
-                                            : ""
-                                    }`}
-                                >
-                                    Customers
-                                </Link>
-                            </li>
-                            <li className="nav-item">
-                                <Link
-                                    to={"/billing"}
-                                    onClick={() => setMenu("billing")}
-                                    className={`nav-link cursor-pointer${
-                                        menu === "billing"
-                                            ? "active border-bottom border-5 border-info"
-                                            : ""
-                                    }`}
-                                >
-                                    Billing
-                                </Link>
-                            </li>
-                            <li className="nav-item">
-                                <Link
-                                    to={"/orders"}
-                                    onClick={() => setMenu("orders")}
-                                    className={`nav-link cursor-pointer${
-                                        menu === "orders"
-                                            ? "active border-bottom border-5 border-info"
-                                            : ""
-                                    }`}
-                                >
-                                    Orders
-                                </Link>
-                            </li>
-                            <li className="nav-item">
-                                <Link
-                                    to={"/products"}
-                                    onClick={() => setMenu("products")}
-                                    className={`nav-link cursor-pointer${
-                                        menu === "products"
-                                            ? "active border-bottom border-5 border-info"
-                                            : ""
-                                    }`}
-                                >
-                                    Products
-                                </Link>
-                            </li>
+                            {token && (
+                                <>
+                                    <li className="nav-item">
+                                        <Link
+                                            to={"customers"}
+                                            onClick={() =>
+                                                setSelectedTab("customers")
+                                            }
+                                            className={`nav-link cursor-pointer${
+                                                selectedTab === "customers"
+                                                    ? "active border-bottom border-5 border-info"
+                                                    : ""
+                                            }`}
+                                        >
+                                            Customers
+                                        </Link>
+                                    </li>
+                                    <li className="nav-item">
+                                        <Link
+                                            to={"/billing"}
+                                            onClick={() =>
+                                                setSelectedTab("billing")
+                                            }
+                                            className={`nav-link cursor-pointer${
+                                                selectedTab === "billing"
+                                                    ? "active border-bottom border-5 border-info"
+                                                    : ""
+                                            }`}
+                                        >
+                                            Billing
+                                        </Link>
+                                    </li>
+                                    <li className="nav-item">
+                                        <Link
+                                            to={"/orders"}
+                                            onClick={() =>
+                                                setSelectedTab("orders")
+                                            }
+                                            className={`nav-link cursor-pointer${
+                                                selectedTab === "orders"
+                                                    ? "active border-bottom border-5 border-info"
+                                                    : ""
+                                            }`}
+                                        >
+                                            Orders
+                                        </Link>
+                                    </li>
+                                    <li className="nav-item">
+                                        <Link
+                                            to={"/products"}
+                                            onClick={() =>
+                                                setSelectedTab("products")
+                                            }
+                                            className={`nav-link cursor-pointer${
+                                                selectedTab === "products"
+                                                    ? "active border-bottom border-5 border-info"
+                                                    : ""
+                                            }`}
+                                        >
+                                            Products
+                                        </Link>
+                                    </li>
+                                    <li className="nav-item">
+                                        <Link
+                                            to={"/analytics"}
+                                            onClick={() =>
+                                                setSelectedTab("analytics")
+                                            }
+                                            className={`nav-link cursor-pointer${
+                                                selectedTab === "analytics"
+                                                    ? "active border-bottom border-5 border-info"
+                                                    : ""
+                                            }`}
+                                        >
+                                            Analytics
+                                        </Link>
+                                    </li>
+                                </>
+                            )}
                         </ul>{" "}
                         <div className=" d-flex">
-                            <div>
+                            <div
+                                className={`me-2 text-center border px-2 pt-1 border-2 border-dark ${
+                                    selectedTab === "contact"
+                                        ? "border-bottom-2 bg-secondary bg-opacity-25"
+                                        : " border-bottom-0"
+                                }`}
+                            >
                                 <Link
                                     to={"/contact"}
-                                    onClick={() => setMenu("contact")}
-                                    className={`nav-link cursor-pointer${
-                                        menu === "contact"
-                                            ? "active border-bottom border-5 border-success"
-                                            : ""
-                                    }`}
+                                    onClick={() => setSelectedTab("contact")}
+                                    className={`nav-link cursor-pointer`}
                                 >
-                                    Contact For Application problems
+                                    <img
+                                        src={assets.contant_icon}
+                                        alt=""
+                                        className="ms-4"
+                                        width="30"
+                                    />
+                                    <p>Contact For Application problems</p>
                                 </Link>
                             </div>
                             {!token ? (
-                                <div className="m-2">
+                                <div>
                                     {" "}
-                                    <button
-                                        className="btn btn-success"
-                                        onClick={() => setShowLogin(true)}
+                                    <div
+                                        className="d-flex text-center bg-success bg-opacity-10 border border-info rounded-pill px-4 py-2 mt-3"
+                                        onClick={() => {
+                                            navigate("/");
+                                            setSelectedTab("home");
+                                        }}
                                     >
                                         Login
-                                    </button>
+                                    </div>
                                 </div>
                             ) : (
-                                <>
+                                <div className="d-flex text-center bg-danger bg-opacity-10 border border-danger rounded-pill px-4 pt-2">
                                     {" "}
-                                    <div>
+                                    <Link
+                                        className="nav-link me-2"
+                                        to={"/profile"}
+                                    >
                                         {" "}
                                         <img
-                                            className="ms-4"
+                                            className=""
                                             src={assets.profile_icon}
-                                            // src={assets.Login_icon}
                                             width="30"
                                         />
                                         <p>Profile</p>
-                                        {/* <p>Login</p> */}
-                                    </div>
-                                    <div>
+                                    </Link>
+                                    <div className="me-2" onClick={logout}>
                                         {" "}
                                         <img
                                             className="ms-4"
                                             src={assets.logout_icon}
                                             width="30"
-                                            onClick={logout}
                                         />
                                         <p>Logout</p>
                                     </div>
-                                </>
+                                </div>
                             )}
                         </div>
                     </div>
                 </div>
             </nav>
+            <hr class="border border-danger border-2 " />
         </div>
     );
 };

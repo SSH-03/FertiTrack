@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
+import { StoreContext } from "../context/StoreContext";
 
 function Orders() {
     const [orders, setOrders] = useState([]);
@@ -8,18 +9,30 @@ function Orders() {
     const [paymentAmount, setPaymentAmount] = useState("");
     const [paymentMode, setPaymentMode] = useState("upi");
     const [confirmCancel, setConfirmCancel] = useState(null);
+    const [confirmPayment, setConfirmPayment] = useState(null);
+
+    const { token } = useContext(StoreContext);
 
     const API_URL = import.meta.env.VITE_BACKEND_URL;
 
     const fetchOrders = async () => {
         try {
-            const res = await axios.get(`${API_URL}/api/order/list`);
-            setOrders(res.data.data);
-        } catch (err) {
-            console.error(err);
+            const response = await axios.get(
+                import.meta.env.VITE_BACKEND_URL + "/api/order/list",
+            );
+
+            if (response.data.success) {
+                setOrders(response.data.data || []);
+            } else {
+                toast.error(response.data.message);
+
+                setOrders([]);
+            }
+        } catch (error) {
+            toast.error("Server error");
+            setOrders([]);
         }
     };
-
     useEffect(() => {
         fetchOrders();
     }, []);
@@ -85,24 +98,36 @@ function Orders() {
                             <div>
                                 <strong>{order.orderId}</strong>
                                 <br />
-                                <small>{order.customer}</small>
+                                <small>{order.customer.name}</small>
                             </div>
 
-                            <div>
-                                <span className="badge bg-success me-2">
-                                    Total ₹{order.billingSummary.finalTotal}
-                                </span>
+                            {!(openOrder === index) ? (
+                                <div>
+                                    <span className="badge bg-warning me-2">
+                                        Total ₹{order.billingSummary.total}
+                                    </span>
+                                    <span className="badge bg-info me-2">
+                                        Discount ₹
+                                        {order.billingSummary.discountAmount}
+                                    </span>
+                                    <span className="badge bg-success me-2">
+                                        Final Total ₹
+                                        {order.billingSummary.finalTotal}
+                                    </span>
 
-                                {order.balance === 0 ? (
-                                    <span className="badge bg-success ">
-                                        Fully Paid
-                                    </span>
-                                ) : (
-                                    <span className="badge bg-danger">
-                                        Balance ₹{order.balance}
-                                    </span>
-                                )}
-                            </div>
+                                    {order.balance === 0 ? (
+                                        <span className="badge bg-success ">
+                                            Fully Paid
+                                        </span>
+                                    ) : (
+                                        <span className="badge bg-danger">
+                                            Balance ₹{order.balance}
+                                        </span>
+                                    )}
+                                </div>
+                            ) : (
+                                ""
+                            )}
                         </div>
 
                         {openOrder === index && (
@@ -110,20 +135,81 @@ function Orders() {
                                 <div className="row">
                                     <div className="col-md-6">
                                         <h5>Products</h5>
-                                        <ul className="list-group">
+
+                                        <ul className="list-group mb-3">
                                             {order.products.map((p, i) => (
                                                 <li
                                                     key={i}
-                                                    className="list-group-item d-flex justify-content-between"
+                                                    className="list-group-item"
                                                 >
-                                                    <span>{p.name}</span>
-                                                    <span>
-                                                        ₹{p.unitprice}/
-                                                        {p.quantityType}
-                                                    </span>
+                                                    <div className="d-flex justify-content-between fw-semibold">
+                                                        <span>{p.name}</span>
+                                                        <span>
+                                                            ₹{p.unitprice}
+                                                        </span>
+                                                    </div>
+
+                                                    <div className="d-flex justify-content-between small text-muted">
+                                                        <span>
+                                                            Qty: {p.quantity}{" "}
+                                                            {p.quantityType}
+                                                        </span>
+                                                        <span>
+                                                            Total: ₹
+                                                            {p.unitprice *
+                                                                p.quantity}
+                                                        </span>
+                                                    </div>
                                                 </li>
                                             ))}
                                         </ul>
+
+                                        {/* PRODUCT SUMMARY */}
+                                        <div className="border rounded p-3 bg-light">
+                                            <div className="d-flex justify-content-between mb-1">
+                                                <span>Total Products</span>
+                                                <span>
+                                                    {order.products.length}
+                                                </span>
+                                            </div>
+
+                                            <div className="d-flex justify-content-between">
+                                                <span>Subtotal</span>
+                                                <span>
+                                                    ₹
+                                                    {order.billingSummary.total}
+                                                </span>
+                                            </div>
+
+                                            <div className="d-flex justify-content-between text-warning">
+                                                <span>Discount</span>
+                                                <span>
+                                                    - ₹
+                                                    {
+                                                        order.billingSummary
+                                                            .discountAmount
+                                                    }
+                                                </span>
+                                            </div>
+
+                                            <hr className="my-2" />
+
+                                            <div className="d-flex justify-content-between fw-bold">
+                                                <span>Final Total</span>
+                                                <span>
+                                                    ₹
+                                                    {
+                                                        order.billingSummary
+                                                            .finalTotal
+                                                    }
+                                                </span>
+                                            </div>
+
+                                            <div className="d-flex justify-content-between text-danger">
+                                                <span>Balance</span>
+                                                <span>₹{order.balance}</span>
+                                            </div>
+                                        </div>
                                     </div>
 
                                     <div className="col-md-6">
@@ -191,14 +277,27 @@ function Orders() {
                                                         Card
                                                     </option>
                                                 </select>
-
                                                 <button
                                                     className="btn btn-primary w-100"
-                                                    onClick={() =>
-                                                        payInstallment(
-                                                            order._id
-                                                        )
-                                                    }
+                                                    onClick={() => {
+                                                        if (
+                                                            !paymentAmount ||
+                                                            paymentAmount <= 0
+                                                        ) {
+                                                            toast.warning(
+                                                                "Enter a valid amount"
+                                                            );
+                                                            return;
+                                                        }
+
+                                                        setConfirmPayment({
+                                                            orderId: order._id,
+                                                            amount: Number(
+                                                                paymentAmount
+                                                            ),
+                                                            mode: paymentMode,
+                                                        });
+                                                    }}
                                                 >
                                                     Pay
                                                 </button>
@@ -286,6 +385,67 @@ function Orders() {
                                     }
                                 >
                                     Yes, Cancel Order
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {confirmPayment && (
+                <div
+                    className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center"
+                    style={{
+                        backgroundColor: "rgba(0,0,0,0.6)",
+                        zIndex: 1060,
+                    }}
+                >
+                    <div
+                        className="modal-dialog"
+                        style={{ maxWidth: "450px", width: "100%" }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="modal-content bg-white text-dark rounded-4 shadow-lg">
+                            <div className="modal-header px-4 py-3">
+                                <h5 className="modal-title fw-bold">
+                                    Confirm Payment
+                                </h5>
+                                <button
+                                    className="btn-close"
+                                    onClick={() => setConfirmPayment(null)}
+                                ></button>
+                            </div>
+
+                            <div className="modal-body px-4 py-3">
+                                <div className="mb-2">
+                                    <strong>Amount:</strong> ₹
+                                    {confirmPayment.amount}
+                                </div>
+                                <div className="mb-3">
+                                    <strong>Mode:</strong>{" "}
+                                    {confirmPayment.mode.toUpperCase()}
+                                </div>
+
+                                <div className="alert alert-warning mb-0">
+                                    Are you sure you want to proceed with this
+                                    payment?
+                                </div>
+                            </div>
+
+                            <div className="modal-footer px-4 py-3">
+                                <button
+                                    className="btn btn-outline-secondary"
+                                    onClick={() => setConfirmPayment(null)}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    className="btn btn-success ms-2"
+                                    onClick={() => {
+                                        payInstallment(confirmPayment.orderId);
+                                        setConfirmPayment(null);
+                                    }}
+                                >
+                                    Yes, Pay
                                 </button>
                             </div>
                         </div>
