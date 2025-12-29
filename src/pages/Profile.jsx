@@ -1,11 +1,15 @@
-import React from 'react'
+import React, { useContext } from "react";
+import { StoreContext } from "../context/StoreContext";
 
 const Profile = () => {
-  return (
-    <div>
-      Profile
-    </div>
-  )
-}
+    const { userDetails } = useContext(StoreContext);
+    console.log(userDetails);
+    return (
+        <div>
+            <p>{userDetails.name}</p>
+            <p>{userDetails.email}</p>
+        </div>
+    );
+};
 
-export default Profile
+export default Profile;

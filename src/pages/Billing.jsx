@@ -149,6 +149,7 @@ const Billing = () => {
                 setManualDiscountEnabled(false);
 
                 setShowConfirm(false); // close modal
+                setSelectedTab("orders")
                 navigate("/orders");
             } else {
                 toast.error(response.data.message);

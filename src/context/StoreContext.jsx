@@ -6,6 +6,8 @@ export const StoreContext = createContext(null);
 
 const StoreContextProvider = (props) => {
 
+    const [ userDetails, setUserDetails] = useState({})
+
     const [selectedTab, setSelectedTab] = useState("home");
 
     const [customers, setCustomers] = useState([]);
@@ -15,7 +17,7 @@ const StoreContextProvider = (props) => {
 
     const [token, setToken] = useState("");
     const [ferti_products, setFertiProducts] = useState([]);
-    const [productsLoading, setProductsLoading] = useState([]);
+    const [loading, setLoading] = useState([]);
 
     const addProduct = (itemId) => {
         if (!billingItems[itemId]) {
@@ -74,20 +76,25 @@ const StoreContextProvider = (props) => {
 
     useEffect(() => {
         async function loadData(params) {
-            setProductsLoading(true);
+            setLoading(true);
+            console.log("Data loading")
 
             await fetchProductList();
             await fetchCustomers();
             if (localStorage.getItem("token")) {
                 setToken(localStorage.getItem("token"));
+                setUserDetails(JSON.parse(localStorage.getItem("user")));
             }
-
-            setProductsLoading(false);
+            console.log(ferti_products,"Data loaded")
+            setLoading(false);
+            console.log(userDetails + "USerdetials ")
         }
         loadData();
     }, []);
 
     const contextValue = {
+        userDetails,
+
         selectedTab, 
         setSelectedTab,
 
@@ -95,13 +102,16 @@ const StoreContextProvider = (props) => {
         selectedCustomer,
         setSelectedCustomer,
         fetchCustomers,
+
         ferti_products,
-        productsLoading,
+        fetchProductList,
+        loading,
 
         billingItems,
         setBillingItems,
         addProduct,
         removeProduct,
+
         token,
         setToken,
     };
