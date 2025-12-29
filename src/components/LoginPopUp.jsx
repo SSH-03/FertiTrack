@@ -31,8 +31,9 @@ const LoginPopUp = () => {
             if (response.data.success) {
                 setToken(response.data.token);
                 localStorage.setItem("token", response.data.token);
-                navigate("customers")
+                localStorage.setItem("user", response.data.user);
                 setSelectedTab("customers")
+                navigate("customers")
                 
             } else {
                 alert(response.data.message);

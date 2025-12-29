@@ -3,7 +3,7 @@ import  { useState } from 'react'
 const Contact = () => {
    const [contant, setContant] = useState([
        {
-           name: "Mungapati Midhun Naga Sai",
+           name: "Munagapati Midhun Naga Sai",
            email: "midhunnagasaicse@gmail.com",
            phone: "6300188045",
            education: "B.Tech",

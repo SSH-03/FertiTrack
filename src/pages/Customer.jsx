@@ -3,9 +3,10 @@ import { StoreContext } from "../context/StoreContext";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
+import FarmLoading from "../components/Loading/FarmLoading";
 
 const Customer = () => {
-    const { customers, setSelectedCustomer, fetchCustomers, setSelectedTab } =
+    const { customers, setSelectedCustomer, fetchCustomers, setSelectedTab, loading } =
         useContext(StoreContext);
 
     const navigate = useNavigate();
@@ -97,6 +98,10 @@ const Customer = () => {
             fetchCustomers();
         }
     };
+
+    if (loading) {
+        return <FarmLoading text="Customers data is loading......" />;
+    }
 
     return (
         <div className="container">

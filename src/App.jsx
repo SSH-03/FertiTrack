@@ -9,15 +9,12 @@ import Billing from "./pages/Billing";
 import Orders from "./pages/Orders";
 import Products from "./pages/Products";
 import Contact from "./pages/Contact";
-import { useState } from "react";
-import LoginPopUp from "./components/LoginPopUp";
-import ProductList from "./pages/ProductList";
-import ProductAdd from "./pages/ProductAdd";
 import Home from "./pages/Home";
 
 import { ToastContainer, toast } from "react-toastify";
 import Analytics from "./pages/Analytics";
 import Profile from "./pages/Profile";
+import Notifications from "./pages/Notifications";
 
 function App() {
     // const [activeTab, setActiveTab] = useState("customers");
@@ -34,11 +31,11 @@ function App() {
                     <Route path="/billing" element={<Billing />} />
                     <Route path="/orders" element={<Orders />} />
                     <Route path="/products" element={<Products />}>
-                        <Route path="/products/" element={<ProductList />} />
-                        <Route path="/products/add" element={<ProductAdd />} />
+                       
                     </Route>
                     <Route path="/contact" element={<Contact />} />
                     <Route path="/analytics" element={<Analytics />} />
+                    <Route path="/notifications" element={<Notifications />} />
                     <Route path="/profile" element={<Profile />} />
 
                 </Routes>

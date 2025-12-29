@@ -1,7 +1,6 @@
 import React, { useContext, useEffect, useState } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
-import { StoreContext } from "../context/StoreContext";
 
 function Orders() {
     const [orders, setOrders] = useState([]);
@@ -11,14 +10,12 @@ function Orders() {
     const [confirmCancel, setConfirmCancel] = useState(null);
     const [confirmPayment, setConfirmPayment] = useState(null);
 
-    const { token } = useContext(StoreContext);
-
     const API_URL = import.meta.env.VITE_BACKEND_URL;
 
     const fetchOrders = async () => {
         try {
             const response = await axios.get(
-                import.meta.env.VITE_BACKEND_URL + "/api/order/list",
+                import.meta.env.VITE_BACKEND_URL + "/api/order/list"
             );
 
             if (response.data.success) {
@@ -96,9 +93,15 @@ function Orders() {
                             }
                         >
                             <div>
-                                <strong>{order.orderId}</strong>
-                                <br />
-                                <small>{order.customer.name}</small>
+                                <div className="fw-semibold">
+                                    Name: {order.customer.name}
+                                </div>{" "}
+                                <small className="text-muted">
+                                    📞 {order.customer.phone}
+                                </small>
+                                <small className="text-muted d-block">
+                                    <b>Village:</b> {order.customer.village}
+                                </small>
                             </div>
 
                             {!(openOrder === index) ? (

@@ -5,10 +5,10 @@ import Loading from "./Loading";
 import FarmLoading from "./Loading/FarmLoading";
 
 const ProductDisplay = () => {
-    const { productsLoading, ferti_products } = useContext(StoreContext);
+    const { loading, ferti_products } = useContext(StoreContext);
 
-    if (productsLoading) {
-        return <FarmLoading text="Products are loading" />;
+    if (loading) {
+        return <FarmLoading text="Products are loading......" />;
     }
 
     if (!ferti_products || ferti_products.length === 0) {

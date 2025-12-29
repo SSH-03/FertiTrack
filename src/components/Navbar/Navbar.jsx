@@ -11,6 +11,7 @@ const Navbar = () => {
 
     const logout = () => {
         localStorage.removeItem("token");
+        localStorage.removeItem("user");
         setToken("");
         navigate("/");
         setSelectedTab("home");
@@ -131,6 +132,21 @@ const Navbar = () => {
                                             }`}
                                         >
                                             Analytics
+                                        </Link>
+                                    </li>
+                                    <li className="nav-item">
+                                        <Link
+                                            to={"/notifications"}
+                                            onClick={() =>
+                                                setSelectedTab("notifications")
+                                            }
+                                            className={`nav-link cursor-pointer${
+                                                selectedTab === "notifications"
+                                                    ? "active border-bottom border-5 border-info"
+                                                    : ""
+                                            }`}
+                                        >
+                                            Notifications
                                         </Link>
                                     </li>
                                 </>
