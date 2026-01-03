@@ -77,17 +77,13 @@ const StoreContextProvider = (props) => {
     useEffect(() => {
         async function loadData(params) {
             setLoading(true);
-            console.log("Data loading")
-
             await fetchProductList();
             await fetchCustomers();
             if (localStorage.getItem("token")) {
                 setToken(localStorage.getItem("token"));
                 setUserDetails(JSON.parse(localStorage.getItem("user")));
             }
-            console.log(ferti_products,"Data loaded")
             setLoading(false);
-            console.log(userDetails + "USerdetials ")
         }
         loadData();
     }, []);

@@ -5,9 +5,21 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
 
+const UNIT_FACTOR = {
+    g: 0.001,
+    kg: 1,
+    ton: 1000,
+};
+
 const Billing = () => {
-    const {setSelectedTab, selectedCustomer, billingItems, setBillingItems, token } =
-        useContext(StoreContext);
+    const {
+        setSelectedTab,
+        selectedCustomer,
+        billingItems,
+        setBillingItems,
+        token,
+        fetchProductList,
+    } = useContext(StoreContext);
 
     const navigate = useNavigate();
 
@@ -18,6 +30,36 @@ const Billing = () => {
     const [manualDiscount, setManualDiscount] = useState(0);
 
     const [showConfirm, setShowConfirm] = useState(false);
+
+    const getEffectiveUnitPrice = (item) => {
+        const baseType = item.quantityType;
+        const orderType = item.orderQuantityType || baseType;
+
+        // scenerios used for conversions
+        // grams -> grams
+        // conversion = 0.001 / 0.001 = 1
+        // price = 100 x 1 = ₹100
+
+        // grams -> kilograms
+        // conversion = 1 / 0.001 = 1000
+        // price = 100 x 1000 = ₹100,000
+
+        // kilograms → grams
+        // conversion = 0.001 / 0.001 = 1
+        // price = ₹100
+
+        if (!UNIT_FACTOR[baseType] || !UNIT_FACTOR[orderType]) {
+            return item.unitprice;
+        }
+
+        const conversion = UNIT_FACTOR[orderType] / UNIT_FACTOR[baseType];
+
+        return item.unitprice * conversion;
+    };
+
+    const getItemTotal = (item) => {
+        return item.quantity * getEffectiveUnitPrice(item);
+    };
 
     const addDuration = (dose, measure) => {
         const date = new Date();
@@ -56,7 +98,7 @@ const Billing = () => {
         new Date(dateObj).toISOString().split("T")[0];
 
     const total = Object.values(billingItems).reduce(
-        (sum, item) => sum + item.quantity * item.unitprice,
+        (sum, item) => sum + getItemTotal(item),
         0
     );
 
@@ -66,6 +108,7 @@ const Billing = () => {
 
     const finalTotal = Math.max(total - discountAmount, 0);
     const balance = Math.max(finalTotal - amountPaid, 0);
+
     const handleSaveClick = (event) => {
         event.preventDefault();
 
@@ -77,10 +120,17 @@ const Billing = () => {
             toast.error("Please add products before billing.");
             return;
         }
-        if (finalTotal <= 0) {
-            toast.error("Final total must be greater than 0.");
-            return;
+        for (const item of Object.values(billingItems)) {
+            if (!item.orderQuantityType) {
+                item.orderQuantityType = item.quantityType;
+            }
+
+            if (!item.quantity || item.quantity <= 0) {
+                toast.error(`Invalid quantity for ${item.name}`);
+                return;
+            }
         }
+
         if (!paymentMode) {
             toast.error("Please select a payment mode.");
             return;
@@ -95,10 +145,23 @@ const Billing = () => {
                 ? new Date(item.nextDoseDate)
                 : autoDate;
             return {
-                ...item,
+                productId: item._id, 
+
+                name: item.name,
+                quantityType: item.quantityType, 
+                unitprice: item.unitprice,
+
+                orderQuantity: item.quantity,
+                orderQuantityType: item.orderQuantityType
+                    ? item.orderQuantityType
+                    : item.quantityType,
+
+                baseUnitPrice: item.unitprice,
+                effectiveUnitPrice: getEffectiveUnitPrice(item),
+                totalPrice: getItemTotal(item),
+
                 nextDoseDate: finalDate,
                 nextDosePretty: formatPrettyDate(finalDate),
-                totalPrice: item.quantity * item.unitprice,
             };
         });
 
@@ -149,8 +212,10 @@ const Billing = () => {
                 setManualDiscountEnabled(false);
 
                 setShowConfirm(false); // close modal
-                setSelectedTab("orders")
+                setSelectedTab("orders");
                 navigate("/orders");
+
+                fetchProductList();
             } else {
                 toast.error(response.data.message);
             }
@@ -162,17 +227,24 @@ const Billing = () => {
     useEffect(() => {
         if (!selectedCustomer) {
             navigate("/customers");
-            setSelectedTab("customers")
-            toast.error("Please select the customer")
+            setSelectedTab("customers");
+            toast.error("Please select the customer");
         }
     }, [selectedCustomer, navigate]);
-if (!selectedCustomer) {
-    return null;
-}
+
+    useEffect(() => {
+        if (amountPaid > finalTotal) {
+            setAmountPaid(finalTotal);
+        }
+    }, [finalTotal]);
+
+    if (!selectedCustomer) {
+        return null;
+    }
     return (
         <>
             <form className="container mt-4" onSubmit={handleSaveClick}>
-                {/* Customer */}
+            
                 <div className="card p-3 mb-4 shadow-sm">
                     <h4>{selectedCustomer.name}</h4>
                     <p className="mb-0">📞 {selectedCustomer.phone}</p>
@@ -185,8 +257,9 @@ if (!selectedCustomer) {
                     <thead className="table-dark">
                         <tr>
                             <th>Product</th>
-                            <th>Qty</th>
                             <th>Unit Price</th>
+                            <th>Quantity</th>
+                            <th>Quantity Type</th>
                             <th>Total</th>
                             <th>Next Dose</th>
                             <th>Measure</th>
@@ -217,10 +290,15 @@ if (!selectedCustomer) {
                                     <tr key={item._id}>
                                         <td>{item.name}</td>
                                         <td>
+                                            ₹{getEffectiveUnitPrice(item)}/
+                                            {item.orderQuantityType
+                                                ? item.orderQuantityType
+                                                : item.quantityType}
+                                        </td>
+                                        <td>
                                             <input
                                                 type="number"
                                                 className="form-control"
-                                                min="1"
                                                 value={item.quantity}
                                                 onChange={(e) =>
                                                     setBillingItems((prev) => ({
@@ -235,9 +313,36 @@ if (!selectedCustomer) {
                                                 }
                                             />
                                         </td>
-                                        <td>₹{item.unitprice}</td>
                                         <td>
-                                            ₹{item.quantity * item.unitprice}
+                                            {" "}
+                                            <select
+                                                className="form-select"
+                                                value={item.orderQuantityType}
+                                                onChange={(e) =>
+                                                    setBillingItems((prev) => ({
+                                                        ...prev,
+                                                        [item._id]: {
+                                                            ...prev[item._id],
+                                                            orderQuantityType:
+                                                                e.target.value,
+                                                        },
+                                                    }))
+                                                }
+                                            >
+                                                <option value="">Select</option>
+                                                <option value="g">
+                                                    Grams (g)
+                                                </option>
+                                                <option value="kg">
+                                                    Kilograms (kg)
+                                                </option>
+                                                <option value="ton">
+                                                    Tons
+                                                </option>
+                                            </select>
+                                        </td>
+                                        <td>
+                                            ₹{getItemTotal(item).toFixed(2)}
                                         </td>
                                         <td>
                                             <input
@@ -310,7 +415,6 @@ if (!selectedCustomer) {
                         )}
                     </tbody>
                 </table>
-
 
                 <div className="card p-4 shadow-sm mt-4">
                     <label className="fw-bold">Total Amount</label>
@@ -428,7 +532,7 @@ if (!selectedCustomer) {
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="modal-content bg-white rounded-4 shadow-lg">
-                            {/* HEADER */}
+                        
                             <div className="modal-header px-4 py-3 border-bottom">
                                 <h5 className="modal-title fw-bold">
                                     Confirm Billing
@@ -440,9 +544,8 @@ if (!selectedCustomer) {
                                 ></button>
                             </div>
 
-                            {/* BODY */}
                             <div className="modal-body px-4 py-3">
-                                {/* PRODUCTS */}
+                            
                                 <h6 className="fw-bold mb-3">
                                     Products Summary
                                 </h6>
@@ -458,19 +561,20 @@ if (!selectedCustomer) {
                                                     {item.name}
                                                 </div>
                                                 <small className="text-muted">
-                                                    {item.quantity} × ₹
-                                                    {item.unitprice}
+                                                    {item.quantity}{" "}
+                                                    {item.orderQuantityType} × ₹
+                                                    {getEffectiveUnitPrice(
+                                                        item
+                                                    ).toFixed(2)}
                                                 </small>
                                             </div>
                                             <div className="fw-bold">
-                                                ₹
-                                                {item.quantity * item.unitprice}
+                                                ₹{getItemTotal(item).toFixed(2)}
                                             </div>
                                         </div>
                                     ))}
                                 </div>
 
-                                {/* TOTALS */}
                                 <div className="bg-light rounded-3 p-3">
                                     <div className="d-flex justify-content-between mb-2">
                                         <span>Total</span>
@@ -487,7 +591,6 @@ if (!selectedCustomer) {
                                 </div>
                             </div>
 
-                            {/* FOOTER */}
                             <div className="modal-footer px-4 py-3 border-top">
                                 <button
                                     className="btn btn-outline-secondary px-4"

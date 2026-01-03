@@ -48,29 +48,29 @@ const ProductItem = ({
         });
     };
 
-   const removeProduct = () => {
-       setBillingItems((prev) => {
-           if (!prev[_id]) return prev; // safety check
+    const removeProduct = () => {
+        setBillingItems((prev) => {
+            if (!prev[_id]) return prev; // safety check
 
-           const currentQty = prev[_id].quantity;
+            const currentQty = prev[_id].quantity;
 
-           if (currentQty <= 1) {
-               // remove the product if quantity is 1
-               const updated = { ...prev };
-               delete updated[_id];
-               return updated;
-           } else {
-               // subtract 1 from quantity
-               return {
-                   ...prev,
-                   [_id]: {
-                       ...prev[_id],
-                       quantity: currentQty - 1,
-                   },
-               };
-           }
-       });
-   };
+            if (currentQty <= 1) {
+                // remove the product if quantity is 1
+                const updated = { ...prev };
+                delete updated[_id];
+                return updated;
+            } else {
+                // subtract 1 from quantity
+                return {
+                    ...prev,
+                    [_id]: {
+                        ...prev[_id],
+                        quantity: currentQty - 1,
+                    },
+                };
+            }
+        });
+    };
 
     return (
         <div className="card p-2 shadow-sm h-100 position-relative">
@@ -82,8 +82,10 @@ const ProductItem = ({
 
             <div className="card-body">
                 <h5>{name}</h5>
-                <p>Next dose: {next_dose}</p>
-                <p>Measure: {dose_measure}</p>
+                <p>
+                    Next dose: {next_dose} {dose_measure}
+                </p>
+
                 <p>
                     ₹{unitprice} / {quantityType}
                 </p>
