@@ -184,9 +184,11 @@ const Products = () => {
                                     />
                                 </td>
                                 <td>{item.name}</td>
-                                <td>₹ {item.unitprice}</td>
                                 <td>
-                                    {item.quantity} {item.quantityType}
+                                    ₹ {item.unitprice}/{item.quantityType}
+                                </td>
+                                <td>
+                                    {item.quantity.toFixed(2)} {item.quantityType}
                                 </td>
                                 <td>
                                     {item.next_dose} {item.dose_measure}
@@ -337,6 +339,29 @@ const Products = () => {
                             <div className="row">
                                 <div className="col-md-4 mb-3">
                                     <label className="form-label fw-bold">
+                                        Quantity Type
+                                    </label>
+                                    <select
+                                        className="form-select"
+                                        value={formData.quantityType}
+                                        onChange={(e) =>
+                                            setFormData({
+                                                ...formData,
+                                                quantityType: e.target.value,
+                                            })
+                                        }
+                                    >
+                                        <option value="">Select</option>
+                                        <option value="g">Grams (g)</option>
+                                        <option value="kg">
+                                            Kilograms (kg)
+                                        </option>
+                                        <option value="ton">Tons</option>
+                                    </select>
+                                </div>
+
+                                <div className="col-md-4 mb-3">
+                                    <label className="form-label fw-bold">
                                         Unit Price (₹ /{" "}
                                         {formData.quantityType || "unit"})
                                     </label>
@@ -375,29 +400,6 @@ const Products = () => {
                                                 per gram
                                             </small>
                                         )}
-                                </div>
-
-                                <div className="col-md-4 mb-3">
-                                    <label className="form-label fw-bold">
-                                        Quantity Type
-                                    </label>
-                                    <select
-                                        className="form-select"
-                                        value={formData.quantityType}
-                                        onChange={(e) =>
-                                            setFormData({
-                                                ...formData,
-                                                quantityType: e.target.value,
-                                            })
-                                        }
-                                    >
-                                        <option value="">Select</option>
-                                        <option value="g">Grams (g)</option>
-                                        <option value="kg">
-                                            Kilograms (kg)
-                                        </option>
-                                        <option value="ton">Tons</option>
-                                    </select>
                                 </div>
 
                                 <div className="col-md-4 mb-3">

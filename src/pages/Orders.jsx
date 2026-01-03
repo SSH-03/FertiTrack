@@ -148,21 +148,35 @@ function Orders() {
                                                     <div className="d-flex justify-content-between fw-semibold">
                                                         <span>{p.name}</span>
                                                         <span>
-                                                            ₹{p.unitprice}
+                                                            ₹
+                                                            {p.effectiveUnitPrice.toFixed(
+                                                                2
+                                                            )}
                                                         </span>
                                                     </div>
 
                                                     <div className="d-flex justify-content-between small text-muted">
                                                         <span>
-                                                            Qty: {p.quantity}{" "}
-                                                            {p.quantityType}
+                                                            Qty:{" "}
+                                                            {p.orderQuantity}{" "}
+                                                            {
+                                                                p.orderQuantityType
+                                                            }
                                                         </span>
                                                         <span>
                                                             Total: ₹
-                                                            {p.unitprice *
-                                                                p.quantity}
+                                                            {p.totalPrice.toFixed(
+                                                                2
+                                                            )}
                                                         </span>
                                                     </div>
+
+                                                    {p.nextDosePretty && (
+                                                        <div className="small text-secondary mt-1">
+                                                            Next Dose:{" "}
+                                                            {p.nextDosePretty}
+                                                        </div>
+                                                    )}
                                                 </li>
                                             ))}
                                         </ul>

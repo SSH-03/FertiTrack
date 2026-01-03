@@ -29,7 +29,6 @@ const Customer = () => {
 
     const handleSelect = (customer) => {
         setSelectedCustomer(customer);
-        console.log(customer);
         setSelectedTab("billing");
         navigate("/billing");
     };
